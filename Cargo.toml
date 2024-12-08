@@ -6,7 +6,17 @@ edition = "2021"
 [dependencies]
 rayon = "1.10"
 
+[dev-dependencies]
+criterion = { version = "2.7.2", package = "codspeed-criterion-compat" }
+
 [profile.release]
 codegen-units = 1
 panic = "abort"
 lto = true
+
+[profile.dev.build-override]
+opt-level = 3
+
+[[bench]]
+name = "bench"
+harness = false
