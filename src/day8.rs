@@ -3,18 +3,19 @@ pub fn part1(input: &str) -> u16 {
 
     let mut grid = vec![0u16; (m * n) as usize];
 
-    for antennas in &antennas_by_type {
-        for a in antennas {
-            for b in antennas {
-                if a == b {
-                    continue;
+    for antennas in antennas_by_type.iter().filter(|v| v.len() > 1) {
+        for (i, a) in antennas.iter().enumerate() {
+            for b in antennas.iter().skip(i + 1) {
+                let x1 = a.0 + (b.0 - a.0) * 2;
+                let y1 = a.1 + (b.1 - a.1) * 2;
+                let x2 = b.0 + (a.0 - b.0) * 2;
+                let y2 = b.1 + (a.1 - b.1) * 2;
+
+                if x1 >= 0 && y1 >= 0 && y1 < n && x1 < m {
+                    grid[(y1 * m + x1) as usize] = 1;
                 }
-
-                let rx = a.0 + (b.0 - a.0) * 2;
-                let ry = a.1 + (b.1 - a.1) * 2;
-
-                if rx >= 0 && ry >= 0 && ry < n && rx < m {
-                    grid[(ry * m + rx) as usize] = 1;
+                if x2 >= 0 && y2 >= 0 && y2 < n && x2 < m {
+                    grid[(y2 * m + x2) as usize] = 1;
                 }
             }
         }
@@ -28,23 +29,34 @@ pub fn part2(input: &str) -> u16 {
 
     let mut grid = vec![0u16; (m * n) as usize];
 
-    for antennas in &antennas_by_type {
-        for a in antennas {
-            for b in antennas {
-                if a == b {
-                    continue;
+    for antennas in antennas_by_type.iter().filter(|v| v.len() > 1) {
+        for (i, a) in antennas.iter().enumerate() {
+            for b in antennas.iter().skip(i + 1) {
+                {
+                    let dx = b.0 - a.0;
+                    let dy = b.1 - a.1;
+
+                    let mut rx = a.0 + dx;
+                    let mut ry = a.1 + dy;
+
+                    while rx >= 0 && ry >= 0 && ry < n && rx < m {
+                        grid[(ry * m + rx) as usize] = 1;
+                        rx += dx;
+                        ry += dy;
+                    }
                 }
+                {
+                    let dx = a.0 - b.0;
+                    let dy = a.1 - b.1;
 
-                let dx = b.0 - a.0;
-                let dy = b.1 - a.1;
+                    let mut rx = b.0 + dx;
+                    let mut ry = b.1 + dy;
 
-                let mut rx = a.0 + dx;
-                let mut ry = a.1 + dy;
-
-                while rx >= 0 && ry >= 0 && ry < n && rx < m {
-                    grid[(ry * m + rx) as usize] = 1;
-                    rx += dx;
-                    ry += dy;
+                    while rx >= 0 && ry >= 0 && ry < n && rx < m {
+                        grid[(ry * m + rx) as usize] = 1;
+                        rx += dx;
+                        ry += dy;
+                    }
                 }
             }
         }
@@ -53,82 +65,23 @@ pub fn part2(input: &str) -> u16 {
     grid.iter().sum()
 }
 
-// 48-57, 65-90, 97-122
-fn vec_index(c: &u8) -> usize {
+#[inline(always)]
+fn vec_index(c: u8) -> usize {
     match c {
-        48 => 0,
-        49 => 1,
-        50 => 2,
-        51 => 3,
-        52 => 4,
-        53 => 5,
-        54 => 6,
-        55 => 7,
-        56 => 8,
-        57 => 9,
-        65 => 10,
-        66 => 11,
-        67 => 12,
-        68 => 13,
-        69 => 14,
-        70 => 15,
-        71 => 16,
-        72 => 17,
-        73 => 18,
-        74 => 19,
-        75 => 20,
-        76 => 21,
-        77 => 22,
-        78 => 23,
-        79 => 24,
-        80 => 25,
-        81 => 26,
-        82 => 27,
-        83 => 28,
-        84 => 29,
-        85 => 30,
-        86 => 31,
-        87 => 32,
-        88 => 33,
-        89 => 34,
-        90 => 35,
-        97 => 36,
-        98 => 37,
-        99 => 38,
-        100 => 39,
-        101 => 40,
-        102 => 41,
-        103 => 42,
-        104 => 43,
-        105 => 44,
-        106 => 45,
-        107 => 46,
-        108 => 47,
-        109 => 48,
-        110 => 49,
-        111 => 50,
-        112 => 51,
-        113 => 52,
-        114 => 53,
-        115 => 54,
-        116 => 55,
-        117 => 56,
-        118 => 57,
-        119 => 58,
-        120 => 59,
-        121 => 60,
-        122 => 61,
-        _ => panic!("Invalid character: {}", c),
+        b'0'..=b'9' => (c - b'0') as usize,
+        b'A'..=b'Z' => (c - b'A' + 10) as usize,
+        b'a'..=b'z' => (c - b'a' + 36) as usize,
+        _ => panic!("Invalid character"),
     }
 }
 
 fn parse(input: &str) -> (i32, i32, Vec<Vec<(i32, i32)>>) {
-    let mut antennas = vec![Vec::new(); 62];
+    let mut antennas = vec![Vec::with_capacity(32); 62];
     let mut m = 0;
     let mut x = 0;
     let mut y = 0;
 
-    for char in input.as_bytes() {
+    for &char in input.as_bytes() {
         match char {
             b'\n' => {
                 m = x;
@@ -138,8 +91,8 @@ fn parse(input: &str) -> (i32, i32, Vec<Vec<(i32, i32)>>) {
             b'.' => {
                 x += 1;
             }
-            char => {
-                antennas[vec_index(char)].push((x, y));
+            c => {
+                antennas[vec_index(c)].push((x, y));
                 x += 1;
             }
         }
