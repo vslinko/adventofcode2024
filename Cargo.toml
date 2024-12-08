@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 rayon = "1.10"
+regex = "1.11.1"
 
 [dev-dependencies]
 criterion = { version = "2.7.2", package = "codspeed-criterion-compat" }
