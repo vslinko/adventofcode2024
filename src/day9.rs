@@ -1,53 +1,52 @@
 pub fn part1(input: &str) -> i64 {
-    // let a = std::time::Instant::now();
-    let mut memory: Vec<i64> = Vec::with_capacity(100000);
-    {
-        let disk_map = input.trim();
-        let mut file_id: i64 = 0;
-        let bytes = disk_map.as_bytes();
-        let mut i = 0;
+    let mut numbers: Vec<i64> = input
+        .trim_end()
+        .bytes()
+        .map(|b| (b - b'0') as i64)
+        .collect();
 
-        while i < bytes.len() {
-            let occupied_count = (bytes[i] - b'0') as usize;
-            memory.extend(std::iter::repeat(file_id).take(occupied_count));
-            file_id += 1;
+    let mut result = 0;
+    let mut pos = 0;
+    let mut left = 0;
+    let mut right = numbers.len() - 1;
+    let mut left_id = 0;
+    let mut right_id = (numbers.len() / 2) as i64;
 
-            i += 1;
-
-            if i < bytes.len() {
-                let free_count = (bytes[i] - b'0') as usize;
-                if free_count > 0 {
-                    memory.extend(std::iter::repeat(-1).take(free_count));
-                }
-            }
-
-            i += 1;
+    while left <= right {
+        if numbers[left] > 0 {
+            result += (pos + pos + numbers[left] - 1) * numbers[left] / 2 * left_id;
+            pos += numbers[left];
+            left_id += 1;
         }
-    }
-    // println!("a: {:?}", a.elapsed());
 
-    // let b = std::time::Instant::now();
-    let mut result: i64 = 0;
-    {
-        let mut left = 0;
-        let mut right = memory.len() - 1;
+        left += 1;
 
-        while left <= right {
-            if memory[left] == -1 {
-                while left < right && memory[right] == -1 {
-                    right -= 1;
-                }
-                if right > left {
-                    result += memory[right] * (left as i64);
-                }
-                right -= 1;
+        if left > right {
+            break;
+        }
+
+        let mut remaining = numbers[left];
+
+        while remaining > 0 && left <= right {
+            let process_count = if remaining < numbers[right] {
+                remaining
             } else {
-                result += memory[left] * (left as i64);
+                numbers[right]
+            };
+            result += (pos + pos + process_count - 1) * process_count / 2 * right_id;
+            remaining -= process_count;
+            numbers[right] -= process_count;
+
+            if numbers[right] == 0 {
+                right -= 2;
+                right_id -= 1;
             }
-            left += 1;
+
+            pos += process_count;
         }
+
+        left += 1;
     }
-    // println!("b: {:?}", b.elapsed());
 
     result
 }
@@ -83,17 +82,17 @@ pub fn part2(input: &str) -> i64 {
     let mut result = 0;
     {
         let mut pos = 0;
-        let mut i = 0;
+        let mut left = 0;
         let mut max_right = memory.len() - 1;
 
-        while i < memory.len() {
-            let memory_block = &memory[i];
+        while left < memory.len() {
+            let memory_block = &memory[left];
 
             if memory_block.0 == -1 {
                 let mut right = max_right;
 
                 let mut file_met = false;
-                while i < right {
+                while left < right {
                     if memory[right].0 >= 0 {
                         if !file_met {
                             max_right = right;
@@ -107,15 +106,15 @@ pub fn part2(input: &str) -> i64 {
                     right -= 1;
                 }
 
-                if right > i {
+                if right > left {
                     let file_memory_block = &memory[right];
                     for _ in 0..file_memory_block.1 {
                         result += pos * file_memory_block.0;
                         pos += 1;
                     }
-                    memory[i].1 -= file_memory_block.1;
+                    memory[left].1 -= file_memory_block.1;
                     memory[right].0 = -1; // free memory of the moved file
-                    if memory[i].1 > 0 {
+                    if memory[left].1 > 0 {
                         // check this memory block again
                         continue;
                     }
@@ -128,7 +127,7 @@ pub fn part2(input: &str) -> i64 {
                     pos += 1;
                 }
             }
-            i += 1;
+            left += 1;
         }
     }
 
@@ -138,18 +137,21 @@ pub fn part2(input: &str) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "2333133121414131402";
+    use std::fs::read_to_string;
 
     #[test]
     fn test_day9_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 1928);
+        let prod_input = read_to_string("./inputs/9.txt").unwrap();
+        let prod_output = read_to_string("./outputs/9p1.txt").unwrap();
+        assert_eq!(part1("2333133121414131402"), 1928);
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
     fn test_day9_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 2858);
+        let prod_input = read_to_string("./inputs/9.txt").unwrap();
+        let prod_output = read_to_string("./outputs/9p2.txt").unwrap();
+        assert_eq!(part2("2333133121414131402"), 2858);
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }
