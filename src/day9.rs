@@ -52,7 +52,7 @@ pub fn part1(input: &str) -> i64 {
 }
 
 pub fn part2(input: &str) -> i64 {
-    let disk_map = input.trim();
+    let disk_map = input.trim_end();
     let mut memory: Vec<(i64, i64)> = Vec::with_capacity(disk_map.len());
 
     {
@@ -85,8 +85,13 @@ pub fn part2(input: &str) -> i64 {
         let mut left = 0;
         let mut max_right = memory.len() - 1;
 
-        while left < memory.len() {
+        while left <= max_right {
             let memory_block = &memory[left];
+
+            if memory_block.1 == 0 {
+                left += 1;
+                continue;
+            }
 
             if memory_block.0 == -1 {
                 let mut right = max_right;
@@ -108,12 +113,14 @@ pub fn part2(input: &str) -> i64 {
 
                 if right > left {
                     let file_memory_block = &memory[right];
-                    for _ in 0..file_memory_block.1 {
-                        result += pos * file_memory_block.0;
-                        pos += 1;
-                    }
+                    result += (pos + pos + file_memory_block.1 - 1) * file_memory_block.1 / 2
+                        * file_memory_block.0;
+                    pos += file_memory_block.1;
                     memory[left].1 -= file_memory_block.1;
                     memory[right].0 = -1; // free memory of the moved file
+                    if right == max_right {
+                        max_right -= 1;
+                    }
                     if memory[left].1 > 0 {
                         // check this memory block again
                         continue;
@@ -122,10 +129,8 @@ pub fn part2(input: &str) -> i64 {
                     pos += memory_block.1;
                 }
             } else {
-                for _ in 0..memory_block.1 {
-                    result += pos * memory_block.0;
-                    pos += 1;
-                }
+                result += (pos + pos + memory_block.1 - 1) * memory_block.1 / 2 * memory_block.0;
+                pos += memory_block.1;
             }
             left += 1;
         }
