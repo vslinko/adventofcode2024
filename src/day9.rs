@@ -43,20 +43,9 @@ pub fn part1(input: &str) -> i64 {
     result
 }
 
-struct MemoryBlock {
-    file_id: Option<i64>,
-    size: i64,
-}
-
-impl MemoryBlock {
-    fn new(file_id: Option<i64>, size: i64) -> Self {
-        MemoryBlock { file_id, size }
-    }
-}
-
 pub fn part2(input: &str) -> i64 {
     let disk_map = input.trim();
-    let mut memory: Vec<MemoryBlock> = Vec::with_capacity(disk_map.len());
+    let mut memory: Vec<(i64, i64)> = Vec::with_capacity(disk_map.len());
 
     {
         let mut file_id = 0;
@@ -65,13 +54,13 @@ pub fn part2(input: &str) -> i64 {
 
         while let Some(occupied) = chars.next() {
             let occupied_count = occupied.to_digit(10).unwrap() as i64;
-            memory.push(MemoryBlock::new(Some(file_id), occupied_count));
+            memory.push((file_id, occupied_count));
             file_id += 1;
 
             if let Some(free) = chars.next() {
                 let free_count = free.to_digit(10).unwrap() as i64;
                 if free_count > 0 {
-                    memory.push(MemoryBlock::new(None, free_count));
+                    memory.push((-1, free_count));
                 }
             }
         }
@@ -81,39 +70,47 @@ pub fn part2(input: &str) -> i64 {
     {
         let mut pos = 0;
         let mut i = 0;
+        let mut max_right = memory.len() - 1;
 
         while i < memory.len() {
             let memory_block = &memory[i];
 
-            if memory_block.file_id.is_none() {
-                let mut right = memory.len() - 1;
+            if memory_block.0 == -1 {
+                let mut right = max_right;
 
-                while i < right
-                    && (memory[right].file_id.is_none() || memory[right].size > memory_block.size)
-                {
+                let mut file_met = false;
+                while i < right {
+                    if memory[right].0 >= 0 {
+                        if !file_met {
+                            max_right = right;
+                            file_met = true;
+                        }
+
+                        if memory[right].1 <= memory_block.1 {
+                            break;
+                        }
+                    }
                     right -= 1;
                 }
 
                 if right > i {
                     let file_memory_block = &memory[right];
-                    let file_id = file_memory_block.file_id.unwrap();
-                    for _ in 0..file_memory_block.size {
-                        result += pos * file_id;
+                    for _ in 0..file_memory_block.1 {
+                        result += pos * file_memory_block.0;
                         pos += 1;
                     }
-                    memory[i].size -= file_memory_block.size;
-                    memory[right].file_id = None; // free memory of the moved file
-                    if memory[i].size > 0 {
+                    memory[i].1 -= file_memory_block.1;
+                    memory[right].0 = -1; // free memory of the moved file
+                    if memory[i].1 > 0 {
                         // check this memory block again
                         continue;
                     }
                 } else {
-                    pos += memory_block.size;
+                    pos += memory_block.1;
                 }
             } else {
-                let file_id = memory_block.file_id.unwrap();
-                for _ in 0..memory_block.size {
-                    result += pos * file_id;
+                for _ in 0..memory_block.1 {
+                    result += pos * memory_block.0;
                     pos += 1;
                 }
             }
