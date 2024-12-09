@@ -3,19 +3,24 @@ pub fn part1(input: &str) -> i64 {
     let disk_map = input.trim();
     let mut memory: Vec<i64> = Vec::with_capacity(100000);
     let mut file_id: i64 = 0;
-    let mut chars = disk_map.chars();
+    let bytes = disk_map.as_bytes();
+    let mut i = 0;
 
-    while let Some(occupied) = chars.next() {
-        let occupied_count = occupied.to_digit(10).unwrap() as usize;
+    while i < bytes.len() {
+        let occupied_count = (bytes[i] - b'0') as usize;
         memory.extend(std::iter::repeat(file_id).take(occupied_count));
         file_id += 1;
 
-        if let Some(free) = chars.next() {
-            let free_count = free.to_digit(10).unwrap() as usize;
+        i += 1;
+
+        if i < bytes.len() {
+            let free_count = (bytes[i] - b'0') as usize;
             if free_count > 0 {
                 memory.extend(std::iter::repeat(-1).take(free_count));
             }
         }
+
+        i += 1;
     }
     // println!("a: {:?}", a.elapsed());
 
@@ -50,19 +55,24 @@ pub fn part2(input: &str) -> i64 {
     {
         let mut file_id = 0;
 
-        let mut chars = disk_map.chars();
+        let bytes = disk_map.as_bytes();
+        let mut i = 0;
 
-        while let Some(occupied) = chars.next() {
-            let occupied_count = occupied.to_digit(10).unwrap() as i64;
+        while i < bytes.len() {
+            let occupied_count = (bytes[i] - b'0') as i64;
             memory.push((file_id, occupied_count));
             file_id += 1;
 
-            if let Some(free) = chars.next() {
-                let free_count = free.to_digit(10).unwrap() as i64;
+            i += 1;
+
+            if i < bytes.len() {
+                let free_count = (bytes[i] - b'0') as i64;
                 if free_count > 0 {
                     memory.push((-1, free_count));
                 }
             }
+
+            i += 1;
         }
     }
 
