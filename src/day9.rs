@@ -1,47 +1,51 @@
 pub fn part1(input: &str) -> i64 {
     // let a = std::time::Instant::now();
-    let disk_map = input.trim();
     let mut memory: Vec<i64> = Vec::with_capacity(100000);
-    let mut file_id: i64 = 0;
-    let bytes = disk_map.as_bytes();
-    let mut i = 0;
+    {
+        let disk_map = input.trim();
+        let mut file_id: i64 = 0;
+        let bytes = disk_map.as_bytes();
+        let mut i = 0;
 
-    while i < bytes.len() {
-        let occupied_count = (bytes[i] - b'0') as usize;
-        memory.extend(std::iter::repeat(file_id).take(occupied_count));
-        file_id += 1;
+        while i < bytes.len() {
+            let occupied_count = (bytes[i] - b'0') as usize;
+            memory.extend(std::iter::repeat(file_id).take(occupied_count));
+            file_id += 1;
 
-        i += 1;
+            i += 1;
 
-        if i < bytes.len() {
-            let free_count = (bytes[i] - b'0') as usize;
-            if free_count > 0 {
-                memory.extend(std::iter::repeat(-1).take(free_count));
+            if i < bytes.len() {
+                let free_count = (bytes[i] - b'0') as usize;
+                if free_count > 0 {
+                    memory.extend(std::iter::repeat(-1).take(free_count));
+                }
             }
-        }
 
-        i += 1;
+            i += 1;
+        }
     }
     // println!("a: {:?}", a.elapsed());
 
     // let b = std::time::Instant::now();
     let mut result: i64 = 0;
-    let mut left = 0;
-    let mut right = memory.len() - 1;
+    {
+        let mut left = 0;
+        let mut right = memory.len() - 1;
 
-    while left <= right {
-        if memory[left] == -1 {
-            while left < right && memory[right] == -1 {
+        while left <= right {
+            if memory[left] == -1 {
+                while left < right && memory[right] == -1 {
+                    right -= 1;
+                }
+                if right > left {
+                    result += memory[right] * (left as i64);
+                }
                 right -= 1;
+            } else {
+                result += memory[left] * (left as i64);
             }
-            if right > left {
-                result += memory[right] * (left as i64);
-            }
-            right -= 1;
-        } else {
-            result += memory[left] * (left as i64);
+            left += 1;
         }
-        left += 1;
     }
     // println!("b: {:?}", b.elapsed());
 
