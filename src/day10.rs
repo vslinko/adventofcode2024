@@ -3,16 +3,8 @@ use std::collections::HashSet;
 const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
 pub fn part1(input: &str) -> usize {
-    let lines: &[u8] = input.trim_end().as_bytes();
-
-    let mut m = 0;
-    for &c in lines {
-        if c == b'\n' {
-            break;
-        }
-        m += 1;
-    }
-
+    let lines = input.trim_end().as_bytes();
+    let m = lines.iter().position(|&c| c == b'\n').unwrap() as i32;
     let n = lines.len() as i32 / m;
     let mut pathes: HashSet<i32> = HashSet::new();
 
@@ -61,31 +53,12 @@ pub fn part1(input: &str) -> usize {
     pathes.len()
 }
 
-fn get_index(x: i32, y: i32, m: i32) -> usize {
-    // also newlines are counted
-    (y * (m + 1) + x) as usize
-}
+pub fn part2(input: &str) -> u32 {
+    let lines = input.trim_end().as_bytes();
+    let m = lines.iter().position(|&c| c == b'\n').unwrap() as i32;
+    let n = lines.len() as i32 / m;
 
-pub fn part2(input: &str) -> usize {
-    let lines: Vec<&[u8]> = input
-        .trim_end()
-        .lines()
-        .map(|line| line.as_bytes())
-        .collect();
-
-    let m = lines[0].len() as i32;
-    let n = lines.len() as i32;
-
-    fn r(
-        start_x: i32,
-        start_y: i32,
-        m: i32,
-        n: i32,
-        lines: &Vec<&[u8]>,
-        x: i32,
-        y: i32,
-        pos: u8,
-    ) -> usize {
+    fn r(start_x: i32, start_y: i32, m: i32, n: i32, lines: &[u8], x: i32, y: i32, pos: u8) -> u32 {
         let next_pos = pos + 1;
         let mut result = 0;
 
@@ -97,7 +70,7 @@ pub fn part2(input: &str) -> usize {
                 && next_y >= 0
                 && next_y < n
                 && next_x < m
-                && lines[next_y as usize][next_x as usize] == next_pos
+                && lines[get_index(next_x, next_y, m)] == next_pos
             {
                 if next_pos == b'9' {
                     result += 1;
@@ -114,13 +87,18 @@ pub fn part2(input: &str) -> usize {
 
     for y in 0..n {
         for x in 0..m {
-            if lines[y as usize][x as usize] == b'0' {
+            if lines[get_index(x, y, m)] == b'0' {
                 result += r(x, y, m, n, &lines, x, y, b'0');
             }
         }
     }
 
     result
+}
+
+fn get_index(x: i32, y: i32, m: i32) -> usize {
+    // also newlines are counted
+    (y * (m + 1) + x) as usize
 }
 
 #[cfg(test)]
