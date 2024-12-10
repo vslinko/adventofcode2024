@@ -14,7 +14,7 @@ pub fn part1(input: &str) -> usize {
     }
 
     let n = lines.len() as i32 / m;
-    let mut pathes: HashSet<(i32, i32, i32, i32)> = HashSet::new();
+    let mut pathes: HashSet<i32> = HashSet::new();
 
     fn r(
         start_x: i32,
@@ -22,7 +22,7 @@ pub fn part1(input: &str) -> usize {
         m: i32,
         n: i32,
         lines: &[u8],
-        pathes: &mut HashSet<(i32, i32, i32, i32)>,
+        pathes: &mut HashSet<i32>,
         x: i32,
         y: i32,
         pos: u8,
@@ -40,7 +40,7 @@ pub fn part1(input: &str) -> usize {
                 && lines[get_index(next_x, next_y, m)] == next_pos
             {
                 if next_pos == b'9' {
-                    pathes.insert((start_x, start_y, next_x, next_y));
+                    pathes.insert((start_y * m + start_x) + (next_y * m + next_x) * 10000);
                 } else {
                     r(
                         start_x, start_y, m, n, lines, pathes, next_x, next_y, next_pos,
