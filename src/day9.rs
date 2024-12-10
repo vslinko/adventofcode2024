@@ -68,11 +68,13 @@ pub fn part2(input: &str) -> i64 {
 
             i += 1;
 
-            if i < bytes.len() {
-                let free_count = (bytes[i] - b'0') as i64;
-                if free_count > 0 {
-                    memory.push((-1, free_count));
-                }
+            if i >= bytes.len() {
+                break;
+            }
+
+            let free_count = (bytes[i] - b'0') as i64;
+            if free_count > 0 {
+                memory.push((-1, free_count));
             }
 
             i += 1;
