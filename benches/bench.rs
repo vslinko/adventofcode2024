@@ -7,8 +7,8 @@ pub fn day10(c: &mut Criterion) {
     let s = read_to_string("./inputs/10.txt").unwrap();
     let s = s.as_str();
 
-    c.bench_function("day10 part1", |b| b.iter(|| part1(black_box(s))));
-    c.bench_function("day10 part2", |b| b.iter(|| part2(black_box(s))));
+    c.bench_function("bench_day10_part1", |b| b.iter(|| part1(black_box(s))));
+    c.bench_function("bench_day10_part2", |b| b.iter(|| part2(black_box(s))));
 }
 
 criterion_group!(benches, day10);
