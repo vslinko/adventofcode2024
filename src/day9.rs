@@ -120,21 +120,19 @@ pub fn part2(input: &str) -> i64 {
                     pos += file_memory_block.1;
                     memory[left].1 -= file_memory_block.1;
                     memory[right].0 = -1; // free memory of the moved file
-                    if right == max_right {
-                        max_right -= 1;
+                    if memory[left].1 == 0 {
+                        left += 1;
                     }
-                    if memory[left].1 > 0 {
-                        // check this memory block again
-                        continue;
-                    }
+                    // check this memory block again
                 } else {
                     pos += memory_block.1;
+                    left += 1;
                 }
             } else {
                 result += (pos + pos + memory_block.1 - 1) * memory_block.1 / 2 * memory_block.0;
                 pos += memory_block.1;
+                left += 1;
             }
-            left += 1;
         }
     }
 
