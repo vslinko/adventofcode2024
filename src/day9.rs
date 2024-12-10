@@ -1,4 +1,8 @@
 pub fn part1(input: &str) -> i64 {
+    unsafe { inner1(input) }
+}
+
+unsafe fn inner1(input: &str) -> i64 {
     let mut numbers: Vec<i64> = input
         .trim_end()
         .bytes()
@@ -13,9 +17,11 @@ pub fn part1(input: &str) -> i64 {
     let mut right_id = (numbers.len() / 2) as i64;
 
     while left <= right {
-        if numbers[left] > 0 {
-            result += (pos + pos + numbers[left] - 1) * numbers[left] / 2 * left_id;
-            pos += numbers[left];
+        let left_value = numbers.get_unchecked(left);
+
+        if *left_value > 0 {
+            result += (pos + pos + left_value - 1) * left_value / 2 * left_id;
+            pos += left_value;
             left_id += 1;
         }
 
@@ -25,19 +31,20 @@ pub fn part1(input: &str) -> i64 {
             break;
         }
 
-        let mut remaining = numbers[left];
+        let mut remaining = *numbers.get_unchecked(left);
 
         while remaining > 0 && left <= right {
-            let process_count = if remaining < numbers[right] {
+            let right_value = numbers.get_unchecked_mut(right);
+            let process_count = if remaining < *right_value {
                 remaining
             } else {
-                numbers[right]
+                *right_value
             };
             result += (pos + pos + process_count - 1) * process_count / 2 * right_id;
             remaining -= process_count;
-            numbers[right] -= process_count;
+            *right_value -= process_count;
 
-            if numbers[right] == 0 {
+            if *right_value == 0 {
                 right -= 2;
                 right_id -= 1;
             }
