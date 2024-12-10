@@ -23,22 +23,22 @@ pub fn part1(input: &str) -> usize {
             let next_x = x + dx;
             let next_y = y + dy;
 
-            if next_x >= 0
-                && next_y >= 0
-                && next_y < n
-                && next_x < m
-                && lines[get_index(next_x, next_y, m)] == next_pos
-            {
-                if next_pos == b'9' {
-                    pathes.push(
-                        get_index(start_x, start_y, m) + get_index(next_x, next_y, m) * 10000,
-                    );
-                } else {
-                    r(
-                        start_x, start_y, m, n, lines, pathes, next_x, next_y, next_pos,
-                    );
-                }
+            if next_x < 0 || next_y < 0 || next_y >= n || next_x >= m {
+                continue;
             }
+
+            if lines[get_index(next_x, next_y, m)] != next_pos {
+                continue;
+            }
+
+            if next_pos == b'9' {
+                pathes.push(get_index(start_x, start_y, m) + get_index(next_x, next_y, m) * 10000);
+                continue;
+            }
+
+            r(
+                start_x, start_y, m, n, lines, pathes, next_x, next_y, next_pos,
+            );
         }
     }
 
@@ -68,18 +68,20 @@ pub fn part2(input: &str) -> u32 {
             let next_x = x + dx;
             let next_y = y + dy;
 
-            if next_x >= 0
-                && next_y >= 0
-                && next_y < n
-                && next_x < m
-                && lines[get_index(next_x, next_y, m)] == next_pos
-            {
-                if next_pos == b'9' {
-                    *result += 1;
-                } else {
-                    r(m, n, lines, result, next_x, next_y, next_pos);
-                }
+            if next_x < 0 || next_y < 0 || next_y >= n || next_x >= m {
+                continue;
             }
+
+            if lines[get_index(next_x, next_y, m)] != next_pos {
+                continue;
+            }
+
+            if next_pos == b'9' {
+                *result += 1;
+                continue;
+            }
+
+            r(m, n, lines, result, next_x, next_y, next_pos);
         }
     }
 
