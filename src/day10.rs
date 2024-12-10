@@ -4,7 +4,7 @@ pub fn part1(input: &str) -> usize {
     let lines = input.trim_end().as_bytes();
     let m = lines.iter().position(|&c| c == b'\n').unwrap() as i32;
     let n = lines.len() as i32 / m;
-    let mut pathes: Vec<i32> = Vec::with_capacity(10000);
+    let mut pathes: Vec<usize> = Vec::with_capacity(10000);
 
     fn r(
         start_x: i32,
@@ -12,7 +12,7 @@ pub fn part1(input: &str) -> usize {
         m: i32,
         n: i32,
         lines: &[u8],
-        pathes: &mut Vec<i32>,
+        pathes: &mut Vec<usize>,
         x: i32,
         y: i32,
         pos: u8,
@@ -30,7 +30,9 @@ pub fn part1(input: &str) -> usize {
                 && lines[get_index(next_x, next_y, m)] == next_pos
             {
                 if next_pos == b'9' {
-                    pathes.push((start_y * m + start_x) + (next_y * m + next_x) * 10000);
+                    pathes.push(
+                        get_index(start_x, start_y, m) + get_index(next_x, next_y, m) * 10000,
+                    );
                 } else {
                     r(
                         start_x, start_y, m, n, lines, pathes, next_x, next_y, next_pos,
