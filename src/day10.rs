@@ -61,9 +61,8 @@ pub fn part2(input: &str) -> u32 {
     let m = lines.iter().position(|&c| c == b'\n').unwrap() as i32;
     let n = lines.len() as i32 / m;
 
-    fn r(start_x: i32, start_y: i32, m: i32, n: i32, lines: &[u8], x: i32, y: i32, pos: u8) -> u32 {
+    fn r(m: i32, n: i32, lines: &[u8], result: &mut u32, x: i32, y: i32, pos: u8) {
         let next_pos = pos + 1;
-        let mut result = 0;
 
         for &(dx, dy) in POSSIBLE_MOVES.iter() {
             let next_x = x + dx;
@@ -76,14 +75,12 @@ pub fn part2(input: &str) -> u32 {
                 && lines[get_index(next_x, next_y, m)] == next_pos
             {
                 if next_pos == b'9' {
-                    result += 1;
+                    *result += 1;
                 } else {
-                    result += r(start_x, start_y, m, n, lines, next_x, next_y, next_pos);
+                    r(m, n, lines, result, next_x, next_y, next_pos);
                 }
             }
         }
-
-        result
     }
 
     let mut result = 0;
@@ -91,7 +88,7 @@ pub fn part2(input: &str) -> u32 {
     for y in 0..n {
         for x in 0..m {
             if lines[get_index(x, y, m)] == b'0' {
-                result += r(x, y, m, n, &lines, x, y, b'0');
+                r(m, n, &lines, &mut result, x, y, b'0');
             }
         }
     }
