@@ -5,8 +5,8 @@ set -e
 day="$1"
 part="$2"
 
-if [ -z "$day" ] || [ -z "$part" ]; then
-  echo "Usage: $0 <day> <part>"
+if [ -z "$day" ]; then
+  echo "Usage: $0 <day> [part]"
   exit 1
 fi
 
@@ -15,12 +15,19 @@ if [ ! -f "src/day${day}.rs" ]; then
   exit 1
 fi
 
-if [ "$part" -ne 1 ] && [ "$part" -ne 2 ]; then
+if [ ! -z "$part" ] && [ "$part" -ne 1 ] && [ "$part" -ne 2 ]; then
   echo "Part $part not found"
   exit 1
 fi
 
-echo "Running day $day part $part"
+suffix="_day${day}"
+msg="Running day $day"
+if [ ! -z "$part" ]; then
+    suffix="${suffix}_part${part}"
+    msg="${msg} part $part"
+fi
 
-cargo test -p solution test_day${day}_part$part -- --nocapture
-cargo bench bench_day${day}_part$part
+echo $msg
+
+cargo test test$suffix -- --nocapture
+cargo bench bench$suffix
