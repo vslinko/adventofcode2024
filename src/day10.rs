@@ -3,14 +3,17 @@ use std::collections::HashSet;
 const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
 pub fn part1(input: &str) -> usize {
-    let lines: Vec<&[u8]> = input
-        .trim_end()
-        .lines()
-        .map(|line| line.as_bytes())
-        .collect();
+    let lines: &[u8] = input.trim_end().as_bytes();
 
-    let m = lines[0].len() as i32;
-    let n = lines.len() as i32;
+    let mut m = 0;
+    for &c in lines {
+        if c == b'\n' {
+            break;
+        }
+        m += 1;
+    }
+
+    let n = lines.len() as i32 / m;
     let mut pathes: HashSet<(i32, i32, i32, i32)> = HashSet::new();
 
     fn r(
@@ -18,7 +21,7 @@ pub fn part1(input: &str) -> usize {
         start_y: i32,
         m: i32,
         n: i32,
-        lines: &Vec<&[u8]>,
+        lines: &[u8],
         pathes: &mut HashSet<(i32, i32, i32, i32)>,
         x: i32,
         y: i32,
@@ -34,7 +37,7 @@ pub fn part1(input: &str) -> usize {
                 && next_y >= 0
                 && next_y < n
                 && next_x < m
-                && lines[next_y as usize][next_x as usize] == next_pos
+                && lines[get_index(next_x, next_y, m)] == next_pos
             {
                 if next_pos == b'9' {
                     pathes.insert((start_x, start_y, next_x, next_y));
@@ -49,13 +52,18 @@ pub fn part1(input: &str) -> usize {
 
     for y in 0..n {
         for x in 0..m {
-            if lines[y as usize][x as usize] == b'0' {
+            if lines[get_index(x, y, m)] == b'0' {
                 r(x, y, m, n, &lines, &mut pathes, x, y, b'0');
             }
         }
     }
 
     pathes.len()
+}
+
+fn get_index(x: i32, y: i32, m: i32) -> usize {
+    // also newlines are counted
+    (y * (m + 1) + x) as usize
 }
 
 pub fn part2(input: &str) -> usize {
