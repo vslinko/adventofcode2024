@@ -23,21 +23,33 @@ fn calculate(input: &str, iters: u8) -> u64 {
     for _ in 0..iters {
         for (number, count) in left_map.iter() {
             if *number == 0 {
-                *right_map.entry(1).or_default() += count;
+                right_map
+                    .entry(1)
+                    .and_modify(|c| *c += count)
+                    .or_insert(*count);
                 continue;
             }
 
             let len = number.ilog10() + 1;
 
             if len % 2 == 1 {
-                *right_map.entry(number * 2024).or_default() += count;
+                right_map
+                    .entry(number * 2024)
+                    .and_modify(|c| *c += count)
+                    .or_insert(*count);
                 continue;
             }
 
             let pow = 10u64.pow(len / 2);
 
-            *right_map.entry(number / pow).or_default() += count;
-            *right_map.entry(number % pow).or_default() += count;
+            right_map
+                .entry(number / pow)
+                .and_modify(|c| *c += count)
+                .or_insert(*count);
+            right_map
+                .entry(number % pow)
+                .and_modify(|c| *c += count)
+                .or_insert(*count);
         }
 
         (left_map, right_map) = (right_map, left_map);
