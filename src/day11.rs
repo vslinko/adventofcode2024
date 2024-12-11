@@ -9,7 +9,7 @@ pub fn part2(input: &str) -> u64 {
 }
 
 fn calculate(input: &str, iters: u8) -> u64 {
-    let mut map =
+    let mut left_map =
         input
             .trim_end()
             .split_whitespace()
@@ -18,12 +18,12 @@ fn calculate(input: &str, iters: u8) -> u64 {
                 acc
             });
 
-    for _ in 0..iters {
-        let mut new_map: HashMap<String, u64> = HashMap::new();
+    let mut right_map: HashMap<String, u64> = HashMap::new();
 
-        for (number_string, count) in map.iter() {
+    for _ in 0..iters {
+        for (number_string, count) in left_map.iter() {
             if *number_string == "0" {
-                *new_map.entry("1".to_string()).or_insert(0) += count;
+                *right_map.entry("1".to_string()).or_insert(0) += count;
             } else if number_string.len() % 2 == 0 {
                 let mid = number_string.len() / 2;
                 let left = &number_string[..mid];
@@ -32,18 +32,21 @@ fn calculate(input: &str, iters: u8) -> u64 {
                     right = &right[1..];
                 }
 
-                *new_map.entry(left.to_string()).or_insert(0) += count;
-                *new_map.entry(right.to_string()).or_insert(0) += count;
+                *right_map.entry(left.to_string()).or_insert(0) += count;
+                *right_map.entry(right.to_string()).or_insert(0) += count;
             } else {
                 let num = number_string.parse::<u64>().unwrap() * 2024;
-                *new_map.entry(num.to_string()).or_insert(0) += count;
+                *right_map.entry(num.to_string()).or_insert(0) += count;
             }
         }
 
-        map = new_map;
+        let tmp = left_map;
+        left_map = right_map;
+        right_map = tmp;
+        right_map.clear();
     }
 
-    map.values().sum()
+    left_map.values().sum()
 }
 
 #[cfg(test)]
