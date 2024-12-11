@@ -1,14 +1,14 @@
 use rustc_hash::FxHashMap;
 
 pub fn part1(input: &str) -> u64 {
-    unsafe { calculate(input, 25) }
+    calculate(input, 25)
 }
 
 pub fn part2(input: &str) -> u64 {
-    unsafe { calculate(input, 75) }
+    calculate(input, 75)
 }
 
-unsafe fn calculate(input: &str, iters: u8) -> u64 {
+fn calculate(input: &str, iters: u8) -> u64 {
     let mut left_map =
         input
             .trim_end()
