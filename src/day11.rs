@@ -37,9 +37,7 @@ unsafe fn calculate(input: &str, iters: u8) -> u64 {
             }
         }
 
-        let tmp = left_map;
-        left_map = right_map;
-        right_map = tmp;
+        (left_map, right_map) = (right_map, left_map);
         right_map.clear();
     }
 
