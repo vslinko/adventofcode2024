@@ -12,43 +12,28 @@ unsafe fn calculate(input: &str, iters: u8) -> u64 {
     let mut left_map = input.trim_end().split_whitespace().fold(
         HashMap::with_capacity(4000),
         |mut acc, number_string| {
-            acc.insert(number_string.to_string(), 1);
+            acc.insert(number_string.parse::<u64>().unwrap(), 1);
             acc
         },
     );
 
-    let mut right_map: HashMap<String, u64> = HashMap::with_capacity(4000);
+    let mut right_map = HashMap::with_capacity(4000);
 
     for _ in 0..iters {
-        for (number_string, count) in left_map.iter() {
-            if *number_string == "0" {
-                *right_map.entry("1".to_string()).or_insert(0) += count;
+        for (number, count) in left_map.iter() {
+            if *number == 0 {
+                *right_map.entry(1).or_insert(0) += count;
                 continue;
             }
 
-            let len = number_string.len();
+            let len = number.ilog10() + 1;
 
             if len % 2 == 0 {
-                let mut mid = len / 2;
-
-                *right_map
-                    .entry(number_string.get_unchecked(..mid).to_string())
-                    .or_insert(0) += count;
-
-                while mid < len && *number_string.as_bytes().get_unchecked(mid) == b'0' {
-                    mid += 1;
-                }
-
-                let right = if mid == len {
-                    "0".to_string()
-                } else {
-                    number_string.get_unchecked(mid..).to_string()
-                };
-
-                *right_map.entry(right).or_insert(0) += count;
+                let pow = 10u64.pow(len / 2);
+                *right_map.entry(number / pow).or_insert(0) += count;
+                *right_map.entry(number % pow).or_insert(0) += count;
             } else {
-                let num = number_string.parse::<u64>().unwrap() * 2024;
-                *right_map.entry(num.to_string()).or_insert(0) += count;
+                *right_map.entry(number * 2024).or_insert(0) += count;
             }
         }
 
