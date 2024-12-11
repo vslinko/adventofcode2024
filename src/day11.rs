@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 pub fn part1(input: &str) -> u64 {
-    calculate(input, 25)
+    unsafe { calculate(input, 25) }
 }
 
 pub fn part2(input: &str) -> u64 {
-    calculate(input, 75)
+    unsafe { calculate(input, 75) }
 }
 
-fn calculate(input: &str, iters: u8) -> u64 {
+unsafe fn calculate(input: &str, iters: u8) -> u64 {
     let mut left_map =
         input
             .trim_end()
@@ -24,16 +24,29 @@ fn calculate(input: &str, iters: u8) -> u64 {
         for (number_string, count) in left_map.iter() {
             if *number_string == "0" {
                 *right_map.entry("1".to_string()).or_insert(0) += count;
-            } else if number_string.len() % 2 == 0 {
-                let mid = number_string.len() / 2;
-                let left = &number_string[..mid];
-                let mut right = &number_string[mid..];
-                while right.starts_with("0") && right.len() > 1 {
-                    right = &right[1..];
+                continue;
+            }
+
+            let len = number_string.len();
+
+            if len % 2 == 0 {
+                let mut mid = len / 2;
+
+                *right_map
+                    .entry(number_string[..mid].to_string())
+                    .or_insert(0) += count;
+
+                while mid < len && *number_string.as_bytes().get_unchecked(mid) == b'0' {
+                    mid += 1;
                 }
 
-                *right_map.entry(left.to_string()).or_insert(0) += count;
-                *right_map.entry(right.to_string()).or_insert(0) += count;
+                let right = if mid == len {
+                    "0".to_string()
+                } else {
+                    number_string[mid..].to_string()
+                };
+
+                *right_map.entry(right).or_insert(0) += count;
             } else {
                 let num = number_string.parse::<u64>().unwrap() * 2024;
                 *right_map.entry(num.to_string()).or_insert(0) += count;
