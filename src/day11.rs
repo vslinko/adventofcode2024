@@ -1,4 +1,5 @@
-use rustc_hash::FxHashMap;
+use rustc_hash::FxBuildHasher;
+use std::collections::HashMap;
 
 pub fn part1(input: &str) -> u64 {
     calculate(input, 25)
@@ -9,16 +10,15 @@ pub fn part2(input: &str) -> u64 {
 }
 
 fn calculate(input: &str, iters: u8) -> u64 {
-    let mut left_map =
-        input
-            .trim_end()
-            .split(' ')
-            .fold(FxHashMap::default(), |mut acc, number_string| {
-                acc.insert(number_string.parse::<u64>().unwrap(), 1);
-                acc
-            });
+    let mut left_map = input.trim_end().split(' ').fold(
+        HashMap::with_capacity_and_hasher(4000, FxBuildHasher::default()),
+        |mut acc, number_string| {
+            acc.insert(number_string.parse::<u64>().unwrap(), 1);
+            acc
+        },
+    );
 
-    let mut right_map = FxHashMap::default();
+    let mut right_map = HashMap::with_capacity_and_hasher(4000, FxBuildHasher::default());
 
     for _ in 0..iters {
         for (number, count) in left_map.iter() {
