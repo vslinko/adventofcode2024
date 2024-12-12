@@ -72,78 +72,46 @@ impl Region {
         });
 
         for y in from_y..=till_y {
-            let mut north = Vec::with_capacity((till_x - from_x + 1) as usize);
-            let mut south = Vec::with_capacity((till_x - from_x + 1) as usize);
+            let mut prev_north = -2;
+            let mut prev_south = -2;
 
             for x in from_x..=till_x {
                 if self.has_plot(x, y) {
                     if !self.has_plot(x, y - 1) {
-                        north.push(x);
+                        if x - prev_north > 1 {
+                            sides += 1;
+                        }
+                        prev_north = x;
                     }
                     if !self.has_plot(x, y + 1) {
-                        south.push(x);
+                        if x - prev_south > 1 {
+                            sides += 1;
+                        }
+                        prev_south = x;
                     }
                 }
-            }
-
-            if !north.is_empty() {
-                let mut prev = north[0];
-                for &x in &north[1..] {
-                    if x - prev > 1 {
-                        sides += 1;
-                    }
-                    prev = x;
-                }
-                sides += 1;
-            }
-
-            if !south.is_empty() {
-                let mut prev = south[0];
-                for &x in &south[1..] {
-                    if x - prev > 1 {
-                        sides += 1;
-                    }
-                    prev = x;
-                }
-                sides += 1;
             }
         }
 
         for x in from_x..=till_x {
-            let mut west = Vec::with_capacity((till_y - from_y + 1) as usize);
-            let mut east = Vec::with_capacity((till_y - from_y + 1) as usize);
+            let mut prev_west = -2;
+            let mut prev_east = -2;
 
             for y in from_y..=till_y {
                 if self.has_plot(x, y) {
                     if !self.has_plot(x - 1, y) {
-                        west.push(y);
+                        if y - prev_west > 1 {
+                            sides += 1;
+                        }
+                        prev_west = y;
                     }
                     if !self.has_plot(x + 1, y) {
-                        east.push(y);
+                        if y - prev_east > 1 {
+                            sides += 1;
+                        }
+                        prev_east = y;
                     }
                 }
-            }
-
-            if !west.is_empty() {
-                let mut prev = west[0];
-                for &x in &west[1..] {
-                    if x - prev > 1 {
-                        sides += 1;
-                    }
-                    prev = x;
-                }
-                sides += 1;
-            }
-
-            if !east.is_empty() {
-                let mut prev = east[0];
-                for &x in &east[1..] {
-                    if x - prev > 1 {
-                        sides += 1;
-                    }
-                    prev = x;
-                }
-                sides += 1;
             }
         }
 
