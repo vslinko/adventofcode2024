@@ -3,6 +3,7 @@ use std::fs::read_to_string;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use solution::day10;
 use solution::day11;
+use solution::day12;
 use solution::day9;
 
 pub fn day9(c: &mut Criterion) {
@@ -37,5 +38,17 @@ pub fn day11(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, day9, day10, day11);
+pub fn day12(c: &mut Criterion) {
+    let s = read_to_string("./inputs/12.txt").unwrap();
+    let s = s.as_str();
+
+    c.bench_function("bench_day12_part1", |b| {
+        b.iter(|| day12::part1(black_box(s)))
+    });
+    c.bench_function("bench_day12_part2", |b| {
+        b.iter(|| day12::part2(black_box(s)))
+    });
+}
+
+criterion_group!(benches, day9, day10, day11, day12);
 criterion_main!(benches);
