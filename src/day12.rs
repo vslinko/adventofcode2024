@@ -164,23 +164,18 @@ fn collect_regions(input: &str) -> Vec<Region> {
     let width = input.iter().position(|&c| c == b'\n').unwrap() as i32;
     let height = input.len() as i32 / width;
 
-    fn get_index(x: i32, y: i32, width: i32) -> usize {
-        (y * (width + 1) + x) as usize
-    }
-
     fn collect_i(
         input: &[u8],
         visited: &mut [u8],
         region: &mut Region,
-        width: i32,
-        height: i32,
+        line_len: i32,
         max_x: i32,
         max_y: i32,
         byte: u8,
         x: i32,
         y: i32,
     ) {
-        let next_index = get_index(x, y, width);
+        let next_index = r_index(x, y, line_len) as usize;
 
         if input[next_index] != byte {
             return;
@@ -193,17 +188,14 @@ fn collect_regions(input: &str) -> Vec<Region> {
         region.add_plot(x, y);
         visited[next_index] = 1;
 
-        collect(
-            input, visited, region, width, height, max_x, max_y, byte, x, y,
-        );
+        collect(input, visited, region, line_len, max_x, max_y, byte, x, y);
     }
 
     fn collect(
         input: &[u8],
         visited: &mut [u8],
         region: &mut Region,
-        width: i32,
-        height: i32,
+        line_len: i32,
         max_x: i32,
         max_y: i32,
         byte: u8,
@@ -215,8 +207,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 input,
                 visited,
                 region,
-                width,
-                height,
+                line_len,
                 max_x,
                 max_y,
                 byte,
@@ -229,8 +220,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 input,
                 visited,
                 region,
-                width,
-                height,
+                line_len,
                 max_x,
                 max_y,
                 byte,
@@ -243,8 +233,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 input,
                 visited,
                 region,
-                width,
-                height,
+                line_len,
                 max_x,
                 max_y,
                 byte,
@@ -257,8 +246,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 input,
                 visited,
                 region,
-                width,
-                height,
+                line_len,
                 max_x,
                 max_y,
                 byte,
@@ -272,6 +260,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
     let mut visited = vec![0; input.len()];
     let mut i = 0;
 
+    let line_len = width + 1;
     let max_x = width - 1;
     let max_y = height - 1;
 
@@ -288,8 +277,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 &input,
                 &mut visited,
                 &mut region,
-                width,
-                height,
+                line_len,
                 max_x,
                 max_y,
                 input[i],
