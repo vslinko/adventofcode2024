@@ -4,22 +4,36 @@ use rustc_hash::{FxBuildHasher, FxHashSet};
 const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
 struct Region {
-    plots: FxHashSet<(i32, i32)>,
+    plots: FxHashSet<i32>,
+    width: i32,
+}
+
+fn r_index(x: i32, y: i32, width: i32) -> i32 {
+    y * width + x
+}
+
+fn r_x(index: i32, width: i32) -> i32 {
+    index % width
+}
+
+fn r_y(index: i32, width: i32) -> i32 {
+    index / width
 }
 
 impl Region {
-    fn new() -> Self {
+    fn new(width: i32) -> Self {
         Region {
             plots: FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default()),
+            width,
         }
     }
 
     fn add_plot(&mut self, x: i32, y: i32) {
-        self.plots.insert((x, y));
+        self.plots.insert(r_index(x, y, self.width));
     }
 
     fn has_plot(&self, x: i32, y: i32) -> bool {
-        self.plots.contains(&(x, y))
+        self.plots.contains(&r_index(x, y, self.width))
     }
 
     fn area(&self) -> u64 {
@@ -29,7 +43,9 @@ impl Region {
     fn perimeter(&self) -> u64 {
         let mut perimeter = 0;
 
-        for (x, y) in self.plots.iter() {
+        for &i in self.plots.iter() {
+            let x = r_x(i, self.width);
+            let y = r_y(i, self.width);
             for &(dx, dy) in &POSSIBLE_MOVES {
                 let next_x = x + dx;
                 let next_y = y + dy;
@@ -46,18 +62,14 @@ impl Region {
     fn sides(&self) -> u64 {
         let mut sides = 0;
 
-        let (from_x, till_x) = self
-            .plots
-            .iter()
-            .fold((i32::MAX, 0), |(min_x, max_x), (x, _)| {
-                (min_x.min(*x), max_x.max(*x))
-            });
-        let (from_y, till_y) = self
-            .plots
-            .iter()
-            .fold((i32::MAX, 0), |(min_y, max_y), (_, y)| {
-                (min_y.min(*y), max_y.max(*y))
-            });
+        let (from_x, till_x) = self.plots.iter().fold((i32::MAX, 0), |(min_x, max_x), &i| {
+            let x = r_x(i, self.width);
+            (min_x.min(x), max_x.max(x))
+        });
+        let (from_y, till_y) = self.plots.iter().fold((i32::MAX, 0), |(min_y, max_y), &i| {
+            let y = r_y(i, self.width);
+            (min_y.min(y), max_y.max(y))
+        });
 
         for y in from_y..=till_y {
             let mut north = Vec::with_capacity((till_x - from_x + 1) as usize);
@@ -208,7 +220,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 continue;
             }
             visited[i] = 1;
-            let mut region = Region::new();
+            let mut region = Region::new(width);
             region.add_plot(x, y);
             collect(
                 &input,
