@@ -73,13 +73,7 @@ impl Region {
             .map(|&i| (r_x(i, self.width), r_y(i, self.width)))
             .collect::<Vec<_>>();
 
-        plots.sort_unstable_by(|a, b| {
-            if a.1 == b.1 {
-                a.0.cmp(&b.0)
-            } else {
-                a.1.cmp(&b.1)
-            }
-        });
+        plots.sort_unstable_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
 
         let mut prev_y = 0;
         let mut prev_north = -2;
@@ -107,13 +101,7 @@ impl Region {
             }
         }
 
-        plots.sort_unstable_by(|a, b| {
-            if a.0 == b.0 {
-                a.1.cmp(&b.1)
-            } else {
-                a.0.cmp(&b.0)
-            }
-        });
+        plots.sort_unstable_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
 
         let mut prev_x = 0;
         let mut prev_west = -2;
