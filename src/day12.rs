@@ -154,7 +154,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
 
     fn collect_i(
         input: &[u8],
-        visited: &mut [u8],
+        visited: &mut [bool],
         region: &mut Region,
         line_len: i32,
         max_x: i32,
@@ -169,19 +169,19 @@ fn collect_regions(input: &str) -> Vec<Region> {
             return;
         }
 
-        if visited[next_index] != 0 {
+        if visited[next_index] {
             return;
         }
 
         region.add_plot(x, y);
-        visited[next_index] = 1;
+        visited[next_index] = true;
 
         collect(input, visited, region, line_len, max_x, max_y, byte, x, y);
     }
 
     fn collect(
         input: &[u8],
-        visited: &mut [u8],
+        visited: &mut [bool],
         region: &mut Region,
         line_len: i32,
         max_x: i32,
@@ -245,7 +245,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
     }
 
     let mut regions = Vec::with_capacity(100);
-    let mut visited = vec![0; input.len()];
+    let mut visited = vec![false; input.len()];
     let mut i = 0;
 
     let line_len = width + 1;
@@ -254,11 +254,11 @@ fn collect_regions(input: &str) -> Vec<Region> {
 
     for y in 0..height {
         for x in 0..width {
-            if visited[i] != 0 {
+            if visited[i] {
                 i += 1;
                 continue;
             }
-            visited[i] = 1;
+            visited[i] = true;
             let mut region = Region::new(width, height);
             region.add_plot(x, y);
             collect(
