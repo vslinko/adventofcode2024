@@ -1,26 +1,25 @@
 use rayon::prelude::*;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
 struct Region {
-    plots: Vec<(i32, i32)>,
+    plots: FxHashSet<(i32, i32)>,
 }
 
 impl Region {
     fn new() -> Self {
         Region {
-            plots: Vec::with_capacity(100),
+            plots: FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default()),
         }
     }
 
     fn add_plot(&mut self, x: i32, y: i32) {
-        self.plots.push((x, y));
+        self.plots.insert((x, y));
     }
 
     fn has_plot(&self, x: i32, y: i32) -> bool {
-        self.plots
-            .iter()
-            .any(|(plot_x, plot_y)| *plot_x == x && *plot_y == y)
+        self.plots.contains(&(x, y))
     }
 
     fn area(&self) -> u64 {
