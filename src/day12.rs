@@ -1,151 +1,160 @@
+use rayon::prelude::*;
+
 const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
-pub fn part1(input: &str) -> u64 {
-    let regions = collect_regions(input);
+struct Region {
+    plots: Vec<(i32, i32)>,
+}
 
-    let mut solution = 0;
-
-    for region in regions {
-        let area = region.len() as u64;
-        let perimeter = calc_perimeter(&region);
-
-        solution += area * perimeter;
+impl Region {
+    fn new() -> Self {
+        Region {
+            plots: Vec::with_capacity(100),
+        }
     }
 
-    return solution;
+    fn add_plot(&mut self, x: i32, y: i32) {
+        self.plots.push((x, y));
+    }
+
+    fn has_plot(&self, x: i32, y: i32) -> bool {
+        self.plots
+            .iter()
+            .any(|(plot_x, plot_y)| *plot_x == x && *plot_y == y)
+    }
+
+    fn area(&self) -> u64 {
+        self.plots.len() as u64
+    }
+
+    fn perimeter(&self) -> u64 {
+        let mut perimeter = 0;
+
+        for (x, y) in self.plots.iter() {
+            for &(dx, dy) in &POSSIBLE_MOVES {
+                let next_x = x + dx;
+                let next_y = y + dy;
+
+                if !self.has_plot(next_x, next_y) {
+                    perimeter += 1;
+                }
+            }
+        }
+
+        perimeter
+    }
+
+    fn sides(&self) -> u64 {
+        let mut sides = 0;
+
+        let (from_x, till_x) = self
+            .plots
+            .iter()
+            .fold((i32::MAX, 0), |(min_x, max_x), (x, _)| {
+                (min_x.min(*x), max_x.max(*x))
+            });
+        let (from_y, till_y) = self
+            .plots
+            .iter()
+            .fold((i32::MAX, 0), |(min_y, max_y), (_, y)| {
+                (min_y.min(*y), max_y.max(*y))
+            });
+
+        for y in from_y..=till_y {
+            let mut north = Vec::with_capacity((till_x - from_x + 1) as usize);
+            let mut south = Vec::with_capacity((till_x - from_x + 1) as usize);
+
+            for x in from_x..=till_x {
+                if self.has_plot(x, y) {
+                    if !self.has_plot(x, y - 1) {
+                        north.push(x);
+                    }
+                    if !self.has_plot(x, y + 1) {
+                        south.push(x);
+                    }
+                }
+            }
+
+            if !north.is_empty() {
+                let mut prev = north[0];
+                for &x in &north[1..] {
+                    if x - prev > 1 {
+                        sides += 1;
+                    }
+                    prev = x;
+                }
+                sides += 1;
+            }
+
+            if !south.is_empty() {
+                let mut prev = south[0];
+                for &x in &south[1..] {
+                    if x - prev > 1 {
+                        sides += 1;
+                    }
+                    prev = x;
+                }
+                sides += 1;
+            }
+        }
+
+        for x in from_x..=till_x {
+            let mut west = Vec::with_capacity((till_y - from_y + 1) as usize);
+            let mut east = Vec::with_capacity((till_y - from_y + 1) as usize);
+
+            for y in from_y..=till_y {
+                if self.has_plot(x, y) {
+                    if !self.has_plot(x - 1, y) {
+                        west.push(y);
+                    }
+                    if !self.has_plot(x + 1, y) {
+                        east.push(y);
+                    }
+                }
+            }
+
+            if !west.is_empty() {
+                let mut prev = west[0];
+                for &x in &west[1..] {
+                    if x - prev > 1 {
+                        sides += 1;
+                    }
+                    prev = x;
+                }
+                sides += 1;
+            }
+
+            if !east.is_empty() {
+                let mut prev = east[0];
+                for &x in &east[1..] {
+                    if x - prev > 1 {
+                        sides += 1;
+                    }
+                    prev = x;
+                }
+                sides += 1;
+            }
+        }
+
+        sides
+    }
+}
+
+pub fn part1(input: &str) -> u64 {
+    collect_regions(input)
+        .par_iter()
+        .map(|region| region.area() * region.perimeter())
+        .sum()
 }
 
 pub fn part2(input: &str) -> u64 {
-    let regions = collect_regions(input);
-
-    let mut solution = 0;
-
-    for region in regions {
-        let area = region.len() as u64;
-        let sides = calc_sides(&region);
-
-        solution += area * sides;
-    }
-
-    return solution;
+    collect_regions(input)
+        .par_iter()
+        .map(|region| region.area() * region.sides())
+        .sum()
 }
 
-fn calc_perimeter(region: &[(i32, i32)]) -> u64 {
-    let mut perimeter = 0;
-
-    for (x, y) in region {
-        for &(dx, dy) in &POSSIBLE_MOVES {
-            let next_x = x + dx;
-            let next_y = y + dy;
-
-            if region
-                .iter()
-                .all(|(plot_x, plot_y)| *plot_x != next_x || *plot_y != next_y)
-            {
-                perimeter += 1;
-            }
-        }
-    }
-
-    perimeter
-}
-
-fn calc_sides(region: &[(i32, i32)]) -> u64 {
-    let mut sides = 0;
-
-    let (from_x, till_x) = region.iter().fold((i32::MAX, 0), |(min_x, max_x), (x, _)| {
-        (min_x.min(*x), max_x.max(*x))
-    });
-    let (from_y, till_y) = region.iter().fold((i32::MAX, 0), |(min_y, max_y), (_, y)| {
-        (min_y.min(*y), max_y.max(*y))
-    });
-
-    let has_plot = |x, y| {
-        region
-            .iter()
-            .any(|(plot_x, plot_y)| *plot_x == x && *plot_y == y)
-    };
-
-    for y in from_y..=till_y {
-        let mut north = Vec::with_capacity((till_x - from_x + 1) as usize);
-        let mut south = Vec::with_capacity((till_x - from_x + 1) as usize);
-
-        for x in from_x..=till_x {
-            if has_plot(x, y) {
-                if !has_plot(x, y - 1) {
-                    north.push(x);
-                }
-                if !has_plot(x, y + 1) {
-                    south.push(x);
-                }
-            }
-        }
-
-        if !north.is_empty() {
-            let mut prev = north[0];
-            for &x in &north[1..] {
-                if x - prev > 1 {
-                    sides += 1;
-                }
-                prev = x;
-            }
-            sides += 1;
-        }
-
-        if !south.is_empty() {
-            let mut prev = south[0];
-            for &x in &south[1..] {
-                if x - prev > 1 {
-                    sides += 1;
-                }
-                prev = x;
-            }
-            sides += 1;
-        }
-    }
-
-    for x in from_x..=till_x {
-        let mut west = Vec::with_capacity((till_y - from_y + 1) as usize);
-        let mut east = Vec::with_capacity((till_y - from_y + 1) as usize);
-
-        for y in from_y..=till_y {
-            if has_plot(x, y) {
-                if !has_plot(x - 1, y) {
-                    west.push(y);
-                }
-                if !has_plot(x + 1, y) {
-                    east.push(y);
-                }
-            }
-        }
-
-        if !west.is_empty() {
-            let mut prev = west[0];
-            for &x in &west[1..] {
-                if x - prev > 1 {
-                    sides += 1;
-                }
-                prev = x;
-            }
-            sides += 1;
-        }
-
-        if !east.is_empty() {
-            let mut prev = east[0];
-            for &x in &east[1..] {
-                if x - prev > 1 {
-                    sides += 1;
-                }
-                prev = x;
-            }
-            sides += 1;
-        }
-    }
-
-    sides
-}
-
-fn collect_regions(input: &str) -> Vec<Vec<(i32, i32)>> {
+fn collect_regions(input: &str) -> Vec<Region> {
     let input = input.trim_end().as_bytes();
     let width = input.iter().position(|&c| c == b'\n').unwrap() as i32;
     let height = input.len() as i32 / width;
@@ -157,7 +166,7 @@ fn collect_regions(input: &str) -> Vec<Vec<(i32, i32)>> {
     fn collect(
         input: &[u8],
         visited: &mut [u8],
-        region: &mut Vec<(i32, i32)>,
+        region: &mut Region,
         width: i32,
         height: i32,
         byte: u8,
@@ -182,7 +191,7 @@ fn collect_regions(input: &str) -> Vec<Vec<(i32, i32)>> {
                 continue;
             }
 
-            region.push((next_x, next_y));
+            region.add_plot(next_x, next_y);
             visited[next_index] = 1;
 
             collect(input, visited, region, width, height, byte, next_x, next_y);
@@ -200,8 +209,8 @@ fn collect_regions(input: &str) -> Vec<Vec<(i32, i32)>> {
                 continue;
             }
             visited[i] = 1;
-            let mut region = Vec::with_capacity(100);
-            region.push((x, y));
+            let mut region = Region::new();
+            region.add_plot(x, y);
             collect(
                 &input,
                 &mut visited,
