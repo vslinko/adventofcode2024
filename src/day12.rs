@@ -49,16 +49,16 @@ impl Region {
             let x = r_x(i, self.width);
             let y = r_y(i, self.width);
 
-            if x == 0 || !self.has_plot(x - 1, y) {
+            if x == 0 || !self.plots.contains(&(i - 1)) {
                 perimeter += 1;
             }
-            if x == self.width - 1 || !self.has_plot(x + 1, y) {
+            if x == self.width - 1 || !self.plots.contains(&(i + 1)) {
                 perimeter += 1;
             }
-            if y == 0 || !self.has_plot(x, y - 1) {
+            if y == 0 || !self.plots.contains(&(i - self.width)) {
                 perimeter += 1;
             }
-            if y == self.height - 1 || !self.has_plot(x, y + 1) {
+            if y == self.height - 1 || !self.plots.contains(&(i + self.width)) {
                 perimeter += 1;
             }
         }
