@@ -1,8 +1,6 @@
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
-const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-
 struct Region {
     plots: FxHashSet<i32>,
     width: i32,
@@ -170,44 +168,112 @@ fn collect_regions(input: &str) -> Vec<Region> {
         (y * (width + 1) + x) as usize
     }
 
+    fn collect_i(
+        input: &[u8],
+        visited: &mut [u8],
+        region: &mut Region,
+        width: i32,
+        height: i32,
+        max_x: i32,
+        max_y: i32,
+        byte: u8,
+        x: i32,
+        y: i32,
+    ) {
+        let next_index = get_index(x, y, width);
+
+        if input[next_index] != byte {
+            return;
+        }
+
+        if visited[next_index] != 0 {
+            return;
+        }
+
+        region.add_plot(x, y);
+        visited[next_index] = 1;
+
+        collect(
+            input, visited, region, width, height, max_x, max_y, byte, x, y,
+        );
+    }
+
     fn collect(
         input: &[u8],
         visited: &mut [u8],
         region: &mut Region,
         width: i32,
         height: i32,
+        max_x: i32,
+        max_y: i32,
         byte: u8,
         x: i32,
         y: i32,
     ) {
-        for &(dx, dy) in &POSSIBLE_MOVES {
-            let next_x = x + dx;
-            let next_y = y + dy;
-
-            if next_x < 0 || next_x >= width || next_y < 0 || next_y >= height {
-                continue;
-            }
-
-            let next_index = get_index(next_x, next_y, width);
-
-            if input[next_index] != byte {
-                continue;
-            }
-
-            if visited[next_index] != 0 {
-                continue;
-            }
-
-            region.add_plot(next_x, next_y);
-            visited[next_index] = 1;
-
-            collect(input, visited, region, width, height, byte, next_x, next_y);
+        if x > 0 {
+            collect_i(
+                input,
+                visited,
+                region,
+                width,
+                height,
+                max_x,
+                max_y,
+                byte,
+                x - 1,
+                y,
+            );
+        }
+        if x < max_x {
+            collect_i(
+                input,
+                visited,
+                region,
+                width,
+                height,
+                max_x,
+                max_y,
+                byte,
+                x + 1,
+                y,
+            );
+        }
+        if y > 0 {
+            collect_i(
+                input,
+                visited,
+                region,
+                width,
+                height,
+                max_x,
+                max_y,
+                byte,
+                x,
+                y - 1,
+            );
+        }
+        if y < max_y {
+            collect_i(
+                input,
+                visited,
+                region,
+                width,
+                height,
+                max_x,
+                max_y,
+                byte,
+                x,
+                y + 1,
+            );
         }
     }
 
     let mut regions = Vec::with_capacity(100);
     let mut visited = vec![0; input.len()];
     let mut i = 0;
+
+    let max_x = width - 1;
+    let max_y = height - 1;
 
     for y in 0..height {
         for x in 0..width {
@@ -224,6 +290,8 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 &mut region,
                 width,
                 height,
+                max_x,
+                max_y,
                 input[i],
                 x,
                 y,
