@@ -69,56 +69,77 @@ impl Region {
     fn sides(&self) -> u64 {
         let mut sides = 0;
 
-        let (from_x, till_x) = self.plots.iter().fold((i32::MAX, 0), |(min_x, max_x), &i| {
-            let x = r_x(i, self.width);
-            (min_x.min(x), max_x.max(x))
-        });
-        let (from_y, till_y) = self.plots.iter().fold((i32::MAX, 0), |(min_y, max_y), &i| {
-            let y = r_y(i, self.width);
-            (min_y.min(y), max_y.max(y))
+        let mut plots = self
+            .plots
+            .iter()
+            .map(|&i| (r_x(i, self.width), r_y(i, self.width)))
+            .collect::<Vec<_>>();
+
+        plots.sort_unstable_by(|a, b| {
+            if a.1 == b.1 {
+                a.0.cmp(&b.0)
+            } else {
+                a.1.cmp(&b.1)
+            }
         });
 
-        for y in from_y..=till_y {
-            let mut prev_north = -2;
-            let mut prev_south = -2;
+        let mut prev_y = 0;
+        let mut prev_north = -2;
+        let mut prev_south = -2;
 
-            for x in from_x..=till_x {
-                if self.has_plot(x, y) {
-                    if !self.has_plot(x, y - 1) {
-                        if x - prev_north > 1 {
-                            sides += 1;
-                        }
-                        prev_north = x;
-                    }
-                    if !self.has_plot(x, y + 1) {
-                        if x - prev_south > 1 {
-                            sides += 1;
-                        }
-                        prev_south = x;
-                    }
+        for &(x, y) in plots.iter() {
+            if y != prev_y {
+                prev_north = -2;
+                prev_south = -2;
+                prev_y = y;
+            }
+
+            if !self.has_plot(x, y - 1) {
+                if x - prev_north > 1 {
+                    sides += 1;
                 }
+                prev_north = x;
+            }
+
+            if !self.has_plot(x, y + 1) {
+                if x - prev_south > 1 {
+                    sides += 1;
+                }
+                prev_south = x;
             }
         }
 
-        for x in from_x..=till_x {
-            let mut prev_west = -2;
-            let mut prev_east = -2;
+        plots.sort_unstable_by(|a, b| {
+            if a.0 == b.0 {
+                a.1.cmp(&b.1)
+            } else {
+                a.0.cmp(&b.0)
+            }
+        });
 
-            for y in from_y..=till_y {
-                if self.has_plot(x, y) {
-                    if !self.has_plot(x - 1, y) {
-                        if y - prev_west > 1 {
-                            sides += 1;
-                        }
-                        prev_west = y;
-                    }
-                    if !self.has_plot(x + 1, y) {
-                        if y - prev_east > 1 {
-                            sides += 1;
-                        }
-                        prev_east = y;
-                    }
+        let mut prev_x = 0;
+        let mut prev_west = -2;
+        let mut prev_east = -2;
+
+        for &(x, y) in plots.iter() {
+            if x != prev_x {
+                prev_west = -2;
+                prev_east = -2;
+                prev_x = x;
+            }
+
+            if !self.has_plot(x - 1, y) {
+                if y - prev_west > 1 {
+                    sides += 1;
                 }
+                prev_west = y;
+            }
+
+            if !self.has_plot(x + 1, y) {
+                if y - prev_east > 1 {
+                    sides += 1;
+                }
+                prev_east = y;
             }
         }
 
