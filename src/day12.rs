@@ -6,6 +6,7 @@ const POSSIBLE_MOVES: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 struct Region {
     plots: FxHashSet<i32>,
     width: i32,
+    height: i32,
 }
 
 fn r_index(x: i32, y: i32, width: i32) -> i32 {
@@ -21,10 +22,11 @@ fn r_y(index: i32, width: i32) -> i32 {
 }
 
 impl Region {
-    fn new(width: i32) -> Self {
+    fn new(width: i32, height: i32) -> Self {
         Region {
             plots: FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default()),
             width,
+            height,
         }
     }
 
@@ -46,13 +48,18 @@ impl Region {
         for &i in self.plots.iter() {
             let x = r_x(i, self.width);
             let y = r_y(i, self.width);
-            for &(dx, dy) in &POSSIBLE_MOVES {
-                let next_x = x + dx;
-                let next_y = y + dy;
 
-                if !self.has_plot(next_x, next_y) {
-                    perimeter += 1;
-                }
+            if x == 0 || !self.has_plot(x - 1, y) {
+                perimeter += 1;
+            }
+            if x == self.width - 1 || !self.has_plot(x + 1, y) {
+                perimeter += 1;
+            }
+            if y == 0 || !self.has_plot(x, y - 1) {
+                perimeter += 1;
+            }
+            if y == self.height - 1 || !self.has_plot(x, y + 1) {
+                perimeter += 1;
             }
         }
 
@@ -188,7 +195,7 @@ fn collect_regions(input: &str) -> Vec<Region> {
                 continue;
             }
             visited[i] = 1;
-            let mut region = Region::new(width);
+            let mut region = Region::new(width, height);
             region.add_plot(x, y);
             collect(
                 &input,
@@ -228,11 +235,14 @@ VVIIICJJEE
 MIIIIIJJEE
 MIIISIJEEE
 MMMISSJEEE";
+    const TEST_INPUT3: &str = "AA
+AB";
 
     #[test]
     fn test_day12_part1() {
         assert_eq!(part1(TEST_INPUT1), 140);
         assert_eq!(part1(TEST_INPUT2), 1930);
+        assert_eq!(part1(TEST_INPUT3), 28);
         let prod_input = read_to_string("./inputs/12.txt").unwrap();
         let prod_output = read_to_string("./outputs/12p1.txt").unwrap();
         assert_eq!(part1(&prod_input).to_string(), prod_output);
@@ -242,6 +252,7 @@ MMMISSJEEE";
     fn test_day12_part2() {
         assert_eq!(part2(TEST_INPUT1), 80);
         assert_eq!(part2(TEST_INPUT2), 1206);
+        assert_eq!(part2(TEST_INPUT3), 19);
         let prod_input = read_to_string("./inputs/12.txt").unwrap();
         let prod_output = read_to_string("./outputs/12p2.txt").unwrap();
         assert_eq!(part2(&prod_input).to_string(), prod_output);
