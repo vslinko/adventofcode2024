@@ -4,6 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use solution::day10;
 use solution::day11;
 use solution::day12;
+use solution::day13;
 use solution::day9;
 
 pub fn day9(c: &mut Criterion) {
@@ -50,5 +51,17 @@ pub fn day12(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, day9, day10, day11, day12);
+pub fn day13(c: &mut Criterion) {
+    let s = read_to_string("./inputs/13.txt").unwrap();
+    let s = s.as_str();
+
+    c.bench_function("bench_day13_part1", |b| {
+        b.iter(|| day13::part1(black_box(s)))
+    });
+    c.bench_function("bench_day13_part2", |b| {
+        b.iter(|| day13::part2(black_box(s)))
+    });
+}
+
+criterion_group!(benches, day9, day10, day11, day12, day13);
 criterion_main!(benches);
