@@ -79,10 +79,8 @@ unsafe fn inner(input: &str, increment: f64) -> u64 {
 }
 
 fn smallest_number_of_tokens(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> f64 {
-    let m1 = ay / ax;
     let m2 = by / bx;
-    let b2 = py - m2 * px;
-    let ix = b2 / (m1 - m2);
+    let ix = (py - m2 * px) / (ay / ax - m2);
 
     let a_count = (ix / ax).round();
     let b_count = ((px - ix) / bx).round();
