@@ -1,81 +1,65 @@
+macro_rules! read2 {
+    ($input:expr, $i:expr) => {{
+        let mut num = *$input.get_unchecked($i) as f64 * 10.0;
+        num += *$input.get_unchecked($i + 1) as f64;
+        num - 528.0 // 528 = b'0' * 10 + b'0'
+    }};
+}
+
+macro_rules! read {
+    ($input:expr, $i:expr) => {{
+        let mut num = 0.0;
+        loop {
+            match $input.get_unchecked($i) {
+                b'0'..=b'9' => {
+                    num = num * 10.0 + ($input.get_unchecked($i) - b'0') as f64;
+                    $i += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        num
+    }};
+}
+
+macro_rules! solution {
+    ( $input:expr $(, $delta:expr )? ) => {
+        unsafe {
+            let input = $input.as_bytes();
+            let mut i = 0;
+            let mut sum = 0.0;
+
+            while i < input.len() {
+                i += 12; // skip "Button A: X+"
+                let ax = read2!(input, i);
+                i += 6; // skip number and ", Y+"
+                let ay = read2!(input, i);
+                i += 15; // skip number and "\nButton B: X+"
+                let bx = read2!(input, i);
+                i += 6; // skip number and ", Y+"
+                let by = read2!(input, i);
+                i += 12; // skip number and "\nPrize: X="
+                let px = read!(input, i);
+                i += 4; // skip ", Y="
+                let py = read!(input, i);
+                i += 2; // skip "\n\n"
+
+                sum += smallest_number_of_tokens(ax, ay, bx, by, px $( + $delta )?, py $( + $delta )?);
+            }
+
+            sum as u64
+        }
+    };
+}
+
 pub fn part1(input: &str) -> u64 {
-    unsafe { inner(input, 0.0) }
+    solution!(input)
 }
 
 pub fn part2(input: &str) -> u64 {
-    unsafe { inner(input, 10000000000000.0) }
-}
-
-unsafe fn inner(input: &str, increment: f64) -> u64 {
-    let input = input.as_bytes();
-    let mut i = 0;
-    let mut sum = 0.0;
-
-    while i < input.len() {
-        i += 12; // skip "Button A: X+"
-
-        let mut ax = *input.get_unchecked(i) as f64 * 10.0;
-        i += 1;
-        ax += *input.get_unchecked(i) as f64;
-        ax -= 528.0; // 528 = b'0' * 10 + b'0'
-
-        i += 5; // skip digit and ", Y+"
-
-        let mut ay = *input.get_unchecked(i) as f64 * 10.0;
-        i += 1;
-        ay += *input.get_unchecked(i) as f64;
-        ay -= 528.0; // 528 = b'0' * 10 + b'0'
-
-        i += 14; // skip digit and "\nButton B: X+"
-
-        let mut bx = *input.get_unchecked(i) as f64 * 10.0;
-        i += 1;
-        bx += *input.get_unchecked(i) as f64;
-        bx -= 528.0; // 528 = b'0' * 10 + b'0'
-
-        i += 5; // skip digit and ", Y+"
-
-        let mut by = *input.get_unchecked(i) as f64 * 10.0;
-        i += 1;
-        by += *input.get_unchecked(i) as f64;
-        by -= 528.0; // 528 = b'0' * 10 + b'0'
-
-        i += 11; // skip digit and "\nPrize: X="
-
-        let mut px = 0.0;
-        loop {
-            match input.get_unchecked(i) {
-                b'0'..=b'9' => {
-                    px = px * 10.0 + (input.get_unchecked(i) - b'0') as f64;
-                    i += 1;
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
-
-        i += 4; // skip ", Y="
-
-        let mut py = 0.0;
-        loop {
-            match input.get_unchecked(i) {
-                b'0'..=b'9' => {
-                    py = py * 10.0 + (input.get_unchecked(i) - b'0') as f64;
-                    i += 1;
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
-
-        i += 2; // skip "\n\n"
-
-        sum += smallest_number_of_tokens(ax, ay, bx, by, px + increment, py + increment);
-    }
-
-    sum as u64
+    solution!(input, 10000000000000.0)
 }
 
 fn smallest_number_of_tokens(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> f64 {
