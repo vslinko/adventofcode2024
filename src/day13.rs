@@ -63,11 +63,9 @@ pub fn part2(input: &str) -> u64 {
 }
 
 fn smallest_number_of_tokens(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> f64 {
-    let m2 = by / bx;
-    let ix = (py - m2 * px) / (ay / ax - m2);
-
-    let a_count = (ix / ax).round();
-    let b_count = ((px - ix) / bx).round();
+    let cross = ax * by - ay * bx;
+    let a_count = ((px * by - py * bx) / cross).round();
+    let b_count = ((py * ax - px * ay) / cross).round();
 
     if ax * a_count + bx * b_count != px || ay * a_count + by * b_count != py {
         return 0.0;
