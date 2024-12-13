@@ -1,20 +1,84 @@
-type Case = (f64, f64, f64, f64, f64, f64);
-
 pub fn part1(input: &str) -> u64 {
-    parse(input)
-        .map(|(ax, ay, bx, by, px, py)| solve(ax, ay, bx, by, px, py))
-        .sum()
+    unsafe { inner(input, 0.0) }
 }
 
 pub fn part2(input: &str) -> u64 {
-    parse(input)
-        .map(|(ax, ay, bx, by, px, py)| {
-            solve(ax, ay, bx, by, px + 10000000000000.0, py + 10000000000000.0)
-        })
-        .sum()
+    unsafe { inner(input, 10000000000000.0) }
 }
 
-fn solve(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> u64 {
+unsafe fn inner(input: &str, increment: f64) -> u64 {
+    let input = input.as_bytes();
+    let mut i = 0;
+    let mut sum = 0.0;
+
+    while i < input.len() {
+        i += 12; // skip "Button A: X+"
+
+        let mut ax = *input.get_unchecked(i) as f64 * 10.0;
+        i += 1;
+        ax += *input.get_unchecked(i) as f64;
+        ax -= 528.0; // 528 = b'0' * 10 + b'0'
+
+        i += 5; // skip digit and ", Y+"
+
+        let mut ay = *input.get_unchecked(i) as f64 * 10.0;
+        i += 1;
+        ay += *input.get_unchecked(i) as f64;
+        ay -= 528.0; // 528 = b'0' * 10 + b'0'
+
+        i += 14; // skip digit and "\nButton B: X+"
+
+        let mut bx = *input.get_unchecked(i) as f64 * 10.0;
+        i += 1;
+        bx += *input.get_unchecked(i) as f64;
+        bx -= 528.0; // 528 = b'0' * 10 + b'0'
+
+        i += 5; // skip digit and ", Y+"
+
+        let mut by = *input.get_unchecked(i) as f64 * 10.0;
+        i += 1;
+        by += *input.get_unchecked(i) as f64;
+        by -= 528.0; // 528 = b'0' * 10 + b'0'
+
+        i += 11; // skip digit and "\nPrize: X="
+
+        let mut px = 0.0;
+        loop {
+            match input.get_unchecked(i) {
+                b'0'..=b'9' => {
+                    px = px * 10.0 + (input.get_unchecked(i) - b'0') as f64;
+                    i += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+
+        i += 4; // skip ", Y="
+
+        let mut py = 0.0;
+        loop {
+            match input.get_unchecked(i) {
+                b'0'..=b'9' => {
+                    py = py * 10.0 + (input.get_unchecked(i) - b'0') as f64;
+                    i += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+
+        i += 2; // skip "\n\n"
+
+        sum += smallest_number_of_tokens(ax, ay, bx, by, px + increment, py + increment);
+    }
+
+    sum as u64
+}
+
+fn smallest_number_of_tokens(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> f64 {
     let m1 = ay / ax;
     let m2 = by / bx;
     let b2 = py - m2 * px;
@@ -24,76 +88,10 @@ fn solve(ax: f64, ay: f64, bx: f64, by: f64, px: f64, py: f64) -> u64 {
     let b_count = ((px - ix) / bx).round();
 
     if ax * a_count + bx * b_count != px || ay * a_count + by * b_count != py {
-        return 0;
+        return 0.0;
     }
 
-    (a_count as u64) * 3 + b_count as u64
-}
-
-fn parse(input: &str) -> Parse {
-    Parse {
-        input: input.trim_end().as_bytes(),
-        i: 0,
-    }
-}
-
-struct Parse<'a> {
-    i: usize,
-    input: &'a [u8],
-}
-
-impl Parse<'_> {
-    fn read2(&mut self) -> f64 {
-        let mut num = self.input[self.i] as f64 * 10.0;
-        self.i += 1;
-        num += self.input[self.i] as f64;
-        self.i += 1;
-        num - 528.0 // 528 = b'0' * 10 + b'0'
-    }
-
-    fn read(&mut self) -> f64 {
-        let mut num = 0.0;
-
-        while self.i < self.input.len() {
-            match self.input[self.i] {
-                b'0'..=b'9' => {
-                    num = num * 10.0 + (self.input[self.i] - b'0') as f64;
-                    self.i += 1;
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
-
-        num
-    }
-}
-
-impl Iterator for Parse<'_> {
-    type Item = Case;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i >= self.input.len() {
-            return None;
-        }
-
-        self.i += 12; // skip "Button A: X+"
-        let ax = self.read2();
-        self.i += 4; // skip ", Y+"
-        let ay = self.read2();
-        self.i += 13; // skip "\nButton B: X+"
-        let bx = self.read2();
-        self.i += 4; // skip ", Y+"
-        let by = self.read2();
-        self.i += 10; // skip "\nPrize: X="
-        let px = self.read();
-        self.i += 4; // skip ", Y="
-        let py = self.read();
-        self.i += 2; // skip "\n\n"
-
-        Some((ax, ay, bx, by, px, py))
-    }
+    a_count * 3.0 + b_count
 }
 
 #[cfg(test)]
@@ -115,7 +113,8 @@ Prize: X=7870, Y=6450
 
 Button A: X+69, Y+23
 Button B: X+27, Y+71
-Prize: X=18641, Y=10279";
+Prize: X=18641, Y=10279
+";
 
     #[test]
     fn test_day13_part1() {
