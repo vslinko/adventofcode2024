@@ -4,72 +4,109 @@ struct Robot {
     v: Vec<i32>,
 }
 
-pub fn part1(input: &str) -> usize {
-    let mut robots: Vec<Robot> = input
-        .trim()
-        .lines()
-        .map(|line| {
-            let mut parts = line.split_whitespace();
-            let p: Vec<i32> = parts
-                .next()
-                .unwrap()
-                .trim_start_matches("p=")
-                .split(',')
-                .map(|n| n.parse().unwrap())
-                .collect();
-            let v: Vec<i32> = parts
-                .next()
-                .unwrap()
-                .trim_start_matches("v=")
-                .split(',')
-                .map(|n| n.parse().unwrap())
-                .collect();
-            Robot { p, v }
-        })
-        .collect();
-
-    let m = 101;
-    let n = 103;
-    let seconds = 100;
-
-    for robot in robots.iter_mut() {
-        for _ in 0..seconds {
-            robot.p[0] += robot.v[0];
-            if robot.p[0] < 0 {
-                robot.p[0] = m + robot.p[0];
-            }
-            if robot.p[0] >= m {
-                robot.p[0] = robot.p[0] - m;
-            }
-            robot.p[1] += robot.v[1];
-            if robot.p[1] < 1 {
-                robot.p[1] = n + robot.p[1];
-            }
-            if robot.p[1] >= n {
-                robot.p[1] = robot.p[1] - n;
+macro_rules! read {
+    ($input:expr, $i:expr) => {{
+        let mut num = 0;
+        loop {
+            match $input.get_unchecked($i) {
+                b'0'..=b'9' => {
+                    num = num * 10 + ($input.get_unchecked($i) - b'0') as i32;
+                    $i += 1;
+                }
+                _ => {
+                    break;
+                }
             }
         }
+        num
+    }};
+}
+
+macro_rules! read_signed {
+    ($input:expr, $i:expr) => {{
+        let mut num = 0;
+        let negative = if *$input.get_unchecked($i) == b'-' {
+            $i += 1;
+            true
+        } else {
+            false
+        };
+
+        loop {
+            match $input.get_unchecked($i) {
+                b'0'..=b'9' => {
+                    num = num * 10 + ($input.get_unchecked($i) - b'0') as i32;
+                    $i += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+
+        if negative {
+            num * -1
+        } else {
+            num
+        }
+    }};
+}
+
+pub fn part1(input: &str) -> usize {
+    unsafe { inner1(input) }
+}
+
+const PART1_SECONDS: usize = 100;
+
+unsafe fn inner1(input: &str) -> usize {
+    let m = 101;
+    let n = 103;
+    let input = input.as_bytes();
+
+    let mut i = 0;
+    let mut left_top = 0;
+    let mut right_top = 0;
+    let mut left_bottom = 0;
+    let mut right_bottom = 0;
+
+    while i < input.len() {
+        i += 2; // skip "p="
+        let mut px = read!(input, i);
+        i += 1; // skip ","
+        let mut py = read!(input, i);
+        i += 3; // skip " v="
+        let vx = read_signed!(input, i);
+        i += 1; // skip ","
+        let vy = read_signed!(input, i);
+        i += 1; // skip "\n"
+
+        for _ in 0..PART1_SECONDS {
+            px += vx;
+            if px < 0 {
+                px = m + px;
+            }
+            if px >= m {
+                px = px - m;
+            }
+            py += vy;
+            if py < 1 {
+                py = n + py;
+            }
+            if py >= n {
+                py = py - n;
+            }
+        }
+
+        if px < m / 2 && py < n / 2 {
+            left_top += 1;
+        } else if px > m / 2 && py < n / 2 {
+            right_top += 1;
+        } else if px < m / 2 && py > n / 2 {
+            left_bottom += 1;
+        } else if px > m / 2 && py > n / 2 {
+            right_bottom += 1;
+        }
     }
-
-    let left_top = robots
-        .iter()
-        .filter(|r| r.p[0] < m / 2 && r.p[1] < n / 2)
-        .count();
-
-    let right_top = robots
-        .iter()
-        .filter(|r| r.p[0] > m / 2 && r.p[1] < n / 2)
-        .count();
-
-    let left_bottom = robots
-        .iter()
-        .filter(|r| r.p[0] < m / 2 && r.p[1] > n / 2)
-        .count();
-
-    let right_bottom = robots
-        .iter()
-        .filter(|r| r.p[0] > m / 2 && r.p[1] > n / 2)
-        .count();
 
     left_top * right_top * left_bottom * right_bottom
 }
