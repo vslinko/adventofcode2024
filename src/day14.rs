@@ -99,59 +99,9 @@ pub fn part2(input: &str) -> i32 {
     unsafe { inner2(input) }
 }
 
-fn calculate_robots_group_size(
-    grid: &[bool; GRID_SIZE as usize],
-    visited: &mut [bool; GRID_SIZE as usize],
-    x: i32,
-    y: i32,
-) -> i32 {
-    let index = y * M + x;
-    let i = index as usize;
-
-    if index < 0 || index >= GRID_SIZE || visited[i] || !grid[i] {
-        return 0;
-    }
-
-    visited[i] = true;
-
-    return 1
-        + calculate_robots_group_size(grid, visited, x, y + 1)
-        + calculate_robots_group_size(grid, visited, x, y - 1)
-        + calculate_robots_group_size(grid, visited, x + 1, y)
-        + calculate_robots_group_size(grid, visited, x - 1, y);
-}
-
-fn has_easter_egg(
-    grid: &mut [bool; GRID_SIZE as usize],
-    visited: &mut [bool; GRID_SIZE as usize],
-) -> bool {
-    let mut maximum = 0;
-
-    visited.fill(false);
-
-    for i in 0..GRID_SIZE {
-        if grid[i as usize] {
-            let x = i % M;
-            let y = i / M;
-            maximum = maximum.max(calculate_robots_group_size(grid, visited, x, y));
-        }
-    }
-
-    maximum >= 62
-}
-
-fn fill_grid(robots: &[(i32, i32, i32, i32)], seconds: i32, grid: &mut [bool; GRID_SIZE as usize]) {
-    grid.fill(false);
-
-    for (px, py, vx, vy) in robots.iter() {
-        let x = ((px + seconds * vx) % M + M) % M;
-        let y = ((py + seconds * vy) % N + N) % N;
-        grid[(y * M + x) as usize] = true;
-    }
-}
-
 #[derive(Debug)]
 enum GridPatten {
+    EasterEgg,
     Horisontal,
     Vertical,
     None,
@@ -168,15 +118,15 @@ fn has_pattern(robots: &[(i32, i32, i32, i32)], seconds: i32) -> GridPatten {
         lines[y as usize] += 1;
     }
 
-    if fast_dispersion(&columns, M) > 10.0 {
-        return GridPatten::Vertical;
-    }
+    let has_vertical_pattern = fast_dispersion(&columns, M) > 10.0;
+    let has_horisontal_pattern = fast_dispersion(&lines, N) > 10.0;
 
-    if fast_dispersion(&lines, N) > 10.0 {
-        return GridPatten::Horisontal;
+    match (has_vertical_pattern, has_horisontal_pattern) {
+        (true, true) => GridPatten::EasterEgg,
+        (true, false) => GridPatten::Vertical,
+        (false, true) => GridPatten::Horisontal,
+        (false, false) => GridPatten::None,
     }
-
-    GridPatten::None
 }
 
 #[allow(dead_code)]
@@ -227,34 +177,25 @@ unsafe fn inner2(input: &str) -> i32 {
         r += 1;
     }
 
-    let mut grid: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
-    let mut visited: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
     let mut seconds = 0;
     let mut speed = 1;
 
     loop {
-        if speed == 1 {
-            match has_pattern(&robots, seconds) {
-                GridPatten::Horisontal => {
-                    speed = N;
-                }
-                GridPatten::Vertical => {
-                    speed = M;
-                }
-                GridPatten::None => {}
+        match has_pattern(&robots, seconds) {
+            GridPatten::EasterEgg => {
+                return seconds;
             }
-        }
-
-        fill_grid(&robots, seconds, &mut grid);
-
-        if has_easter_egg(&mut grid, &mut visited) {
-            break;
+            GridPatten::Horisontal => {
+                speed = N;
+            }
+            GridPatten::Vertical => {
+                speed = M;
+            }
+            GridPatten::None => {}
         }
 
         seconds += speed;
     }
-
-    seconds
 }
 
 #[cfg(test)]
