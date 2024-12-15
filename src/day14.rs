@@ -56,7 +56,7 @@ pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
 }
 
-const PART1_SECONDS: usize = 100;
+const PART1_SECONDS: i32 = 100;
 
 unsafe fn inner1(input: &str) -> usize {
     let m = 101;
@@ -71,39 +71,25 @@ unsafe fn inner1(input: &str) -> usize {
 
     while i < input.len() {
         i += 2; // skip "p="
-        let mut px = read!(input, i);
+        let px = read!(input, i);
         i += 1; // skip ","
-        let mut py = read!(input, i);
+        let py = read!(input, i);
         i += 3; // skip " v="
         let vx = read_signed!(input, i);
         i += 1; // skip ","
         let vy = read_signed!(input, i);
         i += 1; // skip "\n"
 
-        for _ in 0..PART1_SECONDS {
-            px += vx;
-            if px < 0 {
-                px = m + px;
-            }
-            if px >= m {
-                px = px - m;
-            }
-            py += vy;
-            if py < 1 {
-                py = n + py;
-            }
-            if py >= n {
-                py = py - n;
-            }
-        }
+        let x = ((px + PART1_SECONDS * vx) % m + m) % m;
+        let y = ((py + PART1_SECONDS * vy) % n + n) % n;
 
-        if px < m / 2 && py < n / 2 {
+        if x < m / 2 && y < n / 2 {
             left_top += 1;
-        } else if px > m / 2 && py < n / 2 {
+        } else if x > m / 2 && y < n / 2 {
             right_top += 1;
-        } else if px < m / 2 && py > n / 2 {
+        } else if x < m / 2 && y > n / 2 {
             left_bottom += 1;
-        } else if px > m / 2 && py > n / 2 {
+        } else if x > m / 2 && y > n / 2 {
             right_bottom += 1;
         }
     }
