@@ -1,134 +1,134 @@
 use std::collections::HashSet;
 
+const WIDTH: usize = 50;
+const HEIGHT: usize = 50;
+const LINE_WIDTH: usize = WIDTH + 1;
+const GRID_LENGTH: usize = HEIGHT * LINE_WIDTH;
+
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
 }
 
+fn get_index(x: usize, y: usize) -> usize {
+    y * LINE_WIDTH + x
+}
+
 unsafe fn inner1(input: &str) -> usize {
-    let mut parts = input.trim().split("\n\n");
-    let grid_str = parts.next().unwrap();
-    let moves = parts.next().unwrap().trim().chars().collect::<Vec<char>>();
+    let mut grid = input[0..GRID_LENGTH - 1].as_bytes().to_vec();
+    let moves = input[GRID_LENGTH + 1..].as_bytes();
 
-    let mut grid: Vec<Vec<char>> = grid_str
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect();
-
-    let m = grid[0].len();
-    let n = grid.len();
-
-    let mut robot_y = 0;
-    let mut robot_x = 0;
-    'outer: for (y, row) in grid.iter().enumerate() {
-        for (x, &cell) in row.iter().enumerate() {
-            if cell == '@' {
-                robot_y = y;
-                robot_x = x;
-                break 'outer;
-            }
-        }
-    }
-    grid[robot_y][robot_x] = '.';
+    let robot_pos = grid.iter().position(|&cell| cell == b'@').unwrap();
+    let mut robot_y = robot_pos / LINE_WIDTH;
+    let mut robot_x = robot_pos % LINE_WIDTH;
+    grid[robot_pos] = b'.';
 
     for &movement in moves.iter() {
         match movement {
-            '^' => {
-                if grid[robot_y - 1][robot_x] == '.' {
+            b'^' => {
+                let up_pos = get_index(robot_x, robot_y.wrapping_sub(1));
+                if grid[up_pos] == b'.' {
                     robot_y -= 1;
-                } else if grid[robot_y - 1][robot_x] == 'O' {
+                } else if grid[up_pos] == b'O' {
                     let mut next_dot_index = None;
                     for y in (0..robot_y - 1).rev() {
-                        if grid[y][robot_x] == '#' {
+                        let pos = get_index(robot_x, y);
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[y][robot_x] == '.' {
-                            next_dot_index = Some(y);
+                        if grid[pos] == b'.' {
+                            next_dot_index = Some(pos);
                             break;
                         }
                     }
 
-                    if let Some(y) = next_dot_index {
-                        grid[y][robot_x] = 'O';
-                        grid[robot_y - 1][robot_x] = '.';
+                    if let Some(pos) = next_dot_index {
+                        grid[pos] = b'O';
+                        grid[up_pos] = b'.';
                         robot_y -= 1;
                     }
                 }
             }
-            'v' => {
-                if grid[robot_y + 1][robot_x] == '.' {
+            b'v' => {
+                let down_pos = get_index(robot_x, robot_y + 1);
+                if grid[down_pos] == b'.' {
                     robot_y += 1;
-                } else if grid[robot_y + 1][robot_x] == 'O' {
+                } else if grid[down_pos] == b'O' {
                     let mut next_dot_index = None;
-                    for y in robot_y + 2..n {
-                        if grid[y][robot_x] == '#' {
+                    for y in (robot_y + 2)..HEIGHT {
+                        let pos = get_index(robot_x, y);
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[y][robot_x] == '.' {
-                            next_dot_index = Some(y);
+                        if grid[pos] == b'.' {
+                            next_dot_index = Some(pos);
                             break;
                         }
                     }
 
-                    if let Some(y) = next_dot_index {
-                        grid[y][robot_x] = 'O';
-                        grid[robot_y + 1][robot_x] = '.';
+                    if let Some(pos) = next_dot_index {
+                        grid[pos] = b'O';
+                        grid[down_pos] = b'.';
                         robot_y += 1;
                     }
                 }
             }
-            '<' => {
-                if grid[robot_y][robot_x - 1] == '.' {
+            b'<' => {
+                let left_pos = get_index(robot_x.wrapping_sub(1), robot_y);
+                if grid[left_pos] == b'.' {
                     robot_x -= 1;
-                } else if grid[robot_y][robot_x - 1] == 'O' {
+                } else if grid[left_pos] == b'O' {
                     let mut next_dot_index = None;
                     for x in (0..robot_x - 1).rev() {
-                        if grid[robot_y][x] == '#' {
+                        let pos = get_index(x, robot_y);
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[robot_y][x] == '.' {
-                            next_dot_index = Some(x);
+                        if grid[pos] == b'.' {
+                            next_dot_index = Some(pos);
                             break;
                         }
                     }
 
-                    if let Some(x) = next_dot_index {
-                        grid[robot_y][x] = 'O';
-                        grid[robot_y][robot_x - 1] = '.';
+                    if let Some(pos) = next_dot_index {
+                        grid[pos] = b'O';
+                        grid[left_pos] = b'.';
                         robot_x -= 1;
                     }
                 }
             }
-            '>' => {
-                if grid[robot_y][robot_x + 1] == '.' {
+            b'>' => {
+                let right_pos = get_index(robot_x + 1, robot_y);
+                if grid[right_pos] == b'.' {
                     robot_x += 1;
-                } else if grid[robot_y][robot_x + 1] == 'O' {
+                } else if grid[right_pos] == b'O' {
                     let mut next_dot_index = None;
-                    for x in robot_x + 2..m {
-                        if grid[robot_y][x] == '#' {
+                    for x in (robot_x + 2)..WIDTH {
+                        let pos = get_index(x, robot_y);
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[robot_y][x] == '.' {
-                            next_dot_index = Some(x);
+                        if grid[pos] == b'.' {
+                            next_dot_index = Some(pos);
                             break;
                         }
                     }
 
-                    if let Some(x) = next_dot_index {
-                        grid[robot_y][x] = 'O';
-                        grid[robot_y][robot_x + 1] = '.';
+                    if let Some(pos) = next_dot_index {
+                        grid[pos] = b'O';
+                        grid[right_pos] = b'.';
                         robot_x += 1;
                     }
                 }
             }
-            '\n' => {}
+            b'\n' => {}
             _ => panic!("Unknown move: {}", movement),
         }
     }
 
     let mut solution = 0;
-    for y in 0..n {
-        for x in 0..m {
-            if grid[y][x] == 'O' {
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            if grid[get_index(x, y)] == b'O' {
                 solution += y * 100 + x;
             }
         }
