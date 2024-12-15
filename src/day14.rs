@@ -1,12 +1,14 @@
 const M: i32 = 101;
 const N: i32 = 103;
-const GRID_SIZE: i32 = M * N;
+const MS: usize = M as usize;
+const NS: usize = N as usize;
 const HALF_M: i32 = M / 2;
 const HALF_N: i32 = N / 2;
 const PART1_SECONDS: i32 = 100;
 const PART2_ROBOTS: usize = 500;
+const DISPERSION_THRESHOLD: i32 = 250_000;
 
-macro_rules! read {
+macro_rules! read_unsigned {
     ($input:expr, $i:expr) => {{
         let mut num = 0;
         loop {
@@ -69,9 +71,9 @@ unsafe fn inner1(input: &str) -> usize {
 
     while i < input.len() {
         i += 2; // skip "p="
-        let px = read!(input, i);
+        let px = read_unsigned!(input, i);
         i += 1; // skip ","
-        let py = read!(input, i);
+        let py = read_unsigned!(input, i);
         i += 3; // skip " v="
         let vx = read_signed!(input, i);
         i += 1; // skip ","
@@ -99,57 +101,18 @@ pub fn part2(input: &str) -> i32 {
     unsafe { inner2(input) }
 }
 
-#[derive(Debug)]
-enum GridPatten {
-    EasterEgg,
-    Horisontal,
-    Vertical,
-    None,
-}
+macro_rules! is_dispersion_big {
+    ($arr:expr, $len:expr) => {{
+        let mut sum = 0;
+        let mut sum_sq = 0;
 
-fn has_pattern(robots: &[(i32, i32, i32, i32)], seconds: i32) -> GridPatten {
-    let mut columns = [0; M as usize];
-    let mut lines = [0; N as usize];
-
-    for (px, py, vx, vy) in robots.iter() {
-        let x = ((px + seconds * vx) % M + M) % M;
-        let y = ((py + seconds * vy) % N + N) % N;
-        columns[x as usize] += 1;
-        lines[y as usize] += 1;
-    }
-
-    let has_vertical_pattern = fast_dispersion(&columns, M) > 250_000;
-    let has_horisontal_pattern = fast_dispersion(&lines, N) > 250_000;
-
-    match (has_vertical_pattern, has_horisontal_pattern) {
-        (true, true) => GridPatten::EasterEgg,
-        (true, false) => GridPatten::Vertical,
-        (false, true) => GridPatten::Horisontal,
-        (false, false) => GridPatten::None,
-    }
-}
-
-#[allow(dead_code)]
-fn print_grid(grid: &[bool; GRID_SIZE as usize]) {
-    for y in 0..N {
-        for x in 0..M {
-            print!("{}", if grid[(y * M + x) as usize] { '#' } else { '.' });
+        for &count in $arr {
+            sum += count;
+            sum_sq += count * count;
         }
-        println!();
-    }
-    println!();
-}
 
-fn fast_dispersion(arr: &[i32], n: i32) -> i32 {
-    let mut sum = 0;
-    let mut sum_sq = 0;
-
-    for &count in arr {
-        sum += count;
-        sum_sq += count * count;
-    }
-
-    sum_sq * n - sum * sum
+        sum_sq * $len - sum * sum > DISPERSION_THRESHOLD
+    }};
 }
 
 unsafe fn inner2(input: &str) -> i32 {
@@ -161,9 +124,9 @@ unsafe fn inner2(input: &str) -> i32 {
 
     while i < input.len() {
         i += 2; // skip "p="
-        robots[r].0 = read!(input, i);
+        robots[r].0 = read_unsigned!(input, i);
         i += 1; // skip ","
-        robots[r].1 = read!(input, i);
+        robots[r].1 = read_unsigned!(input, i);
         i += 3; // skip " v="
         robots[r].2 = read_signed!(input, i);
         i += 1; // skip ","
@@ -174,26 +137,38 @@ unsafe fn inner2(input: &str) -> i32 {
 
     let mut seconds = 0;
     let mut speed = 1;
+    let mut columns = [0; MS];
+    let mut lines = [0; NS];
 
     loop {
-        match has_pattern(&robots, seconds) {
-            GridPatten::EasterEgg => {
+        for (px, py, vx, vy) in robots.iter() {
+            let x = ((px + seconds * vx) % M + M) % M;
+            let y = ((py + seconds * vy) % N + N) % N;
+
+            *columns.get_unchecked_mut(x as usize) += 1;
+            *lines.get_unchecked_mut(y as usize) += 1;
+        }
+
+        match (
+            is_dispersion_big!(&columns, M),
+            is_dispersion_big!(&lines, N),
+        ) {
+            (true, true) => {
                 return seconds;
             }
-            GridPatten::Horisontal => {
-                speed = N;
-            }
-            GridPatten::Vertical => {
+            (true, false) => {
                 speed = M;
             }
-            GridPatten::None => {}
+            (false, true) => {
+                speed = N;
+            }
+            (false, false) => {}
         }
+
+        columns.fill(0);
+        lines.fill(0);
 
         seconds += speed;
-
-        if seconds > 8280 {
-            return 0;
-        }
     }
 }
 
