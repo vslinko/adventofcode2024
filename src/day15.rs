@@ -17,107 +17,110 @@ unsafe fn inner1(input: &str) -> usize {
     let mut grid = input[0..GRID_LENGTH - 1].as_bytes().to_vec();
     let moves = input[GRID_LENGTH + 1..].as_bytes();
 
-    let robot_pos = grid.iter().position(|&cell| cell == b'@').unwrap();
+    let robot_pos = grid
+        .iter()
+        .position(|&cell| cell == b'@')
+        .unwrap_unchecked();
     let mut robot_y = robot_pos / LINE_WIDTH;
     let mut robot_x = robot_pos % LINE_WIDTH;
-    grid[robot_pos] = b'.';
+    *grid.get_unchecked_mut(robot_pos) = b'.';
 
     for &movement in moves.iter() {
         match movement {
             b'^' => {
                 let up_pos = get_index(robot_x, robot_y.wrapping_sub(1));
-                if grid[up_pos] == b'.' {
-                    robot_y -= 1;
-                } else if grid[up_pos] == b'O' {
-                    let mut next_dot_index = None;
-                    for y in (0..robot_y - 1).rev() {
-                        let pos = get_index(robot_x, y);
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            next_dot_index = Some(pos);
-                            break;
-                        }
-                    }
 
-                    if let Some(pos) = next_dot_index {
-                        grid[pos] = b'O';
-                        grid[up_pos] = b'.';
-                        robot_y -= 1;
+                match grid.get_unchecked(up_pos) {
+                    b'.' => robot_y -= 1,
+                    b'O' => {
+                        for y in (0..robot_y - 1).rev() {
+                            let pos = get_index(robot_x, y);
+
+                            match grid.get_unchecked(pos) {
+                                b'#' => break,
+                                b'.' => {
+                                    *grid.get_unchecked_mut(pos) = b'O';
+                                    *grid.get_unchecked_mut(up_pos) = b'.';
+                                    robot_y -= 1;
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
             b'v' => {
                 let down_pos = get_index(robot_x, robot_y + 1);
-                if grid[down_pos] == b'.' {
-                    robot_y += 1;
-                } else if grid[down_pos] == b'O' {
-                    let mut next_dot_index = None;
-                    for y in (robot_y + 2)..HEIGHT {
-                        let pos = get_index(robot_x, y);
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            next_dot_index = Some(pos);
-                            break;
-                        }
-                    }
 
-                    if let Some(pos) = next_dot_index {
-                        grid[pos] = b'O';
-                        grid[down_pos] = b'.';
-                        robot_y += 1;
+                match grid.get_unchecked(down_pos) {
+                    b'.' => robot_y += 1,
+                    b'O' => {
+                        for y in (robot_y + 2)..HEIGHT {
+                            let pos = get_index(robot_x, y);
+
+                            match grid.get_unchecked(pos) {
+                                b'#' => break,
+                                b'.' => {
+                                    *grid.get_unchecked_mut(pos) = b'O';
+                                    *grid.get_unchecked_mut(down_pos) = b'.';
+                                    robot_y += 1;
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
             b'<' => {
                 let left_pos = get_index(robot_x.wrapping_sub(1), robot_y);
-                if grid[left_pos] == b'.' {
-                    robot_x -= 1;
-                } else if grid[left_pos] == b'O' {
-                    let mut next_dot_index = None;
-                    for x in (0..robot_x - 1).rev() {
-                        let pos = get_index(x, robot_y);
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            next_dot_index = Some(pos);
-                            break;
-                        }
-                    }
 
-                    if let Some(pos) = next_dot_index {
-                        grid[pos] = b'O';
-                        grid[left_pos] = b'.';
-                        robot_x -= 1;
+                match grid.get_unchecked(left_pos) {
+                    b'.' => robot_x -= 1,
+                    b'O' => {
+                        for x in (0..robot_x - 1).rev() {
+                            let pos = get_index(x, robot_y);
+
+                            match grid.get_unchecked(pos) {
+                                b'#' => break,
+                                b'.' => {
+                                    *grid.get_unchecked_mut(pos) = b'O';
+                                    *grid.get_unchecked_mut(left_pos) = b'.';
+                                    robot_x -= 1;
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
             b'>' => {
                 let right_pos = get_index(robot_x + 1, robot_y);
-                if grid[right_pos] == b'.' {
-                    robot_x += 1;
-                } else if grid[right_pos] == b'O' {
-                    let mut next_dot_index = None;
-                    for x in (robot_x + 2)..WIDTH {
-                        let pos = get_index(x, robot_y);
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            next_dot_index = Some(pos);
-                            break;
-                        }
-                    }
 
-                    if let Some(pos) = next_dot_index {
-                        grid[pos] = b'O';
-                        grid[right_pos] = b'.';
-                        robot_x += 1;
+                match grid.get_unchecked(right_pos) {
+                    b'.' => robot_x += 1,
+                    b'O' => {
+                        for x in (robot_x + 2)..WIDTH {
+                            let pos = get_index(x, robot_y);
+
+                            match grid.get_unchecked(pos) {
+                                b'#' => break,
+                                b'.' => {
+                                    *grid.get_unchecked_mut(pos) = b'O';
+                                    *grid.get_unchecked_mut(right_pos) = b'.';
+                                    robot_x += 1;
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
             b'\n' => {}
@@ -128,7 +131,7 @@ unsafe fn inner1(input: &str) -> usize {
     let mut solution = 0;
     for y in 0..HEIGHT {
         for x in 0..WIDTH {
-            if grid[get_index(x, y)] == b'O' {
+            if *grid.get_unchecked(get_index(x, y)) == b'O' {
                 solution += y * 100 + x;
             }
         }
