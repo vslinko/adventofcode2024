@@ -99,43 +99,55 @@ pub fn part2(input: &str) -> i32 {
     unsafe { inner2(input) }
 }
 
-fn calculate_robots_group_size(visited: &mut [bool], result: &[bool], x: i32, y: i32) -> i32 {
+fn calculate_robots_group_size(
+    grid: &[bool; GRID_SIZE as usize],
+    visited: &mut [bool; GRID_SIZE as usize],
+    x: i32,
+    y: i32,
+) -> i32 {
     let index = y * M + x;
     let i = index as usize;
 
-    if index < 0 || index >= GRID_SIZE || visited[i] || !result[i] {
+    if index < 0 || index >= GRID_SIZE || visited[i] || !grid[i] {
         return 0;
     }
 
     visited[i] = true;
 
     return 1
-        + calculate_robots_group_size(visited, result, x, y + 1)
-        + calculate_robots_group_size(visited, result, x, y - 1)
-        + calculate_robots_group_size(visited, result, x + 1, y)
-        + calculate_robots_group_size(visited, result, x - 1, y);
+        + calculate_robots_group_size(grid, visited, x, y + 1)
+        + calculate_robots_group_size(grid, visited, x, y - 1)
+        + calculate_robots_group_size(grid, visited, x + 1, y)
+        + calculate_robots_group_size(grid, visited, x - 1, y);
 }
 
-fn find_max_robots_group(robots: &[(i32, i32, i32, i32)], seconds: i32) -> i32 {
-    let mut grid = vec![false; GRID_SIZE as usize];
-    let mut visited = vec![false; GRID_SIZE as usize];
+fn find_max_robots_group(
+    grid: &mut [bool; GRID_SIZE as usize],
+    visited: &mut [bool; GRID_SIZE as usize],
+) -> i32 {
     let mut maximum = 0;
+
+    visited.fill(false);
+
+    for i in 0..GRID_SIZE {
+        if grid[i as usize] {
+            let x = i % M;
+            let y = i / M;
+            maximum = maximum.max(calculate_robots_group_size(grid, visited, x, y));
+        }
+    }
+
+    maximum
+}
+
+fn fill_grid(robots: &[(i32, i32, i32, i32)], seconds: i32, grid: &mut [bool; GRID_SIZE as usize]) {
+    grid.fill(false);
 
     for (px, py, vx, vy) in robots.iter() {
         let x = ((px + seconds * vx) % M + M) % M;
         let y = ((py + seconds * vy) % N + N) % N;
         grid[(y * M + x) as usize] = true;
     }
-
-    for i in 0..GRID_SIZE {
-        if grid[i as usize] {
-            let x = i % M;
-            let y = i / M;
-            maximum = maximum.max(calculate_robots_group_size(&mut visited, &grid, x, y));
-        }
-    }
-
-    maximum
 }
 
 unsafe fn inner2(input: &str) -> i32 {
@@ -158,9 +170,17 @@ unsafe fn inner2(input: &str) -> i32 {
         r += 1;
     }
 
-    let mut seconds = 1;
+    let mut grid: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
+    let mut visited: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
+    let mut seconds = 0;
 
-    while find_max_robots_group(&robots, seconds) < 62 {
+    loop {
+        fill_grid(&robots, seconds, &mut grid);
+
+        if find_max_robots_group(&mut grid, &mut visited) >= 62 {
+            break;
+        }
+
         seconds += 1;
     }
 
