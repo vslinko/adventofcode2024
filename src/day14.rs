@@ -121,10 +121,10 @@ fn calculate_robots_group_size(
         + calculate_robots_group_size(grid, visited, x - 1, y);
 }
 
-fn find_max_robots_group(
+fn has_easter_egg(
     grid: &mut [bool; GRID_SIZE as usize],
     visited: &mut [bool; GRID_SIZE as usize],
-) -> i32 {
+) -> bool {
     let mut maximum = 0;
 
     visited.fill(false);
@@ -137,7 +137,7 @@ fn find_max_robots_group(
         }
     }
 
-    maximum
+    maximum >= 62
 }
 
 fn fill_grid(robots: &[(i32, i32, i32, i32)], seconds: i32, grid: &mut [bool; GRID_SIZE as usize]) {
@@ -148,6 +148,63 @@ fn fill_grid(robots: &[(i32, i32, i32, i32)], seconds: i32, grid: &mut [bool; GR
         let y = ((py + seconds * vy) % N + N) % N;
         grid[(y * M + x) as usize] = true;
     }
+}
+
+#[derive(Debug)]
+enum GridPatten {
+    Horisontal,
+    Vertical,
+    None,
+}
+
+fn has_pattern(robots: &[(i32, i32, i32, i32)], seconds: i32) -> GridPatten {
+    let mut columns = [0; M as usize];
+    let mut lines = [0; N as usize];
+
+    for (px, py, vx, vy) in robots.iter() {
+        let x = ((px + seconds * vx) % M + M) % M;
+        let y = ((py + seconds * vy) % N + N) % N;
+        columns[x as usize] += 1;
+        lines[y as usize] += 1;
+    }
+
+    if fast_dispersion(&columns, M) > 10.0 {
+        return GridPatten::Vertical;
+    }
+
+    if fast_dispersion(&lines, N) > 10.0 {
+        return GridPatten::Horisontal;
+    }
+
+    GridPatten::None
+}
+
+#[allow(dead_code)]
+fn print_grid(grid: &[bool; GRID_SIZE as usize]) {
+    for y in 0..N {
+        for x in 0..M {
+            print!("{}", if grid[(y * M + x) as usize] { '#' } else { '.' });
+        }
+        println!();
+    }
+    println!();
+}
+
+fn fast_dispersion(arr: &[i32], n: i32) -> f64 {
+    let n = n as f64;
+    let mut sum = 0.0;
+    let mut sum_sq = 0.0;
+
+    for &x in arr {
+        let x = x as f64;
+        sum += x;
+        sum_sq += x * x;
+    }
+
+    let sum_sq_avg = sum_sq / n;
+    let sum_avg = sum / n;
+
+    sum_sq_avg - sum_avg * sum_avg
 }
 
 unsafe fn inner2(input: &str) -> i32 {
@@ -173,15 +230,28 @@ unsafe fn inner2(input: &str) -> i32 {
     let mut grid: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
     let mut visited: [bool; GRID_SIZE as usize] = [false; GRID_SIZE as usize];
     let mut seconds = 0;
+    let mut speed = 1;
 
     loop {
+        if speed == 1 {
+            match has_pattern(&robots, seconds) {
+                GridPatten::Horisontal => {
+                    speed = N;
+                }
+                GridPatten::Vertical => {
+                    speed = M;
+                }
+                GridPatten::None => {}
+            }
+        }
+
         fill_grid(&robots, seconds, &mut grid);
 
-        if find_max_robots_group(&mut grid, &mut visited) >= 62 {
+        if has_easter_egg(&mut grid, &mut visited) {
             break;
         }
 
-        seconds += 1;
+        seconds += speed;
     }
 
     seconds
