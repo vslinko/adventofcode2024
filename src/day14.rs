@@ -136,8 +136,8 @@ unsafe fn inner2(input: &str) -> i32 {
     let mut seconds = 0;
     let mut columns = [0; MS];
     let mut lines = [0; NS];
-    let mut col_i = 0;
-    let mut line_i = 0;
+    let mut vertical_pattern_second = 0;
+    let mut horizontal_pattern_second = 0;
 
     loop {
         seconds += 1;
@@ -150,18 +150,18 @@ unsafe fn inner2(input: &str) -> i32 {
             *lines.get_unchecked_mut(y as usize) += 1;
         }
 
-        if col_i == 0 && is_dispersion_big(&columns, M) {
-            col_i = seconds;
+        if vertical_pattern_second == 0 && is_dispersion_big(&columns, M) {
+            vertical_pattern_second = seconds;
 
-            if line_i != 0 {
+            if horizontal_pattern_second != 0 {
                 break;
             }
         }
 
-        if line_i == 0 && is_dispersion_big(&lines, N) {
-            line_i = seconds;
+        if horizontal_pattern_second == 0 && is_dispersion_big(&lines, N) {
+            horizontal_pattern_second = seconds;
 
-            if col_i != 0 {
+            if vertical_pattern_second != 0 {
                 break;
             }
         }
@@ -170,10 +170,10 @@ unsafe fn inner2(input: &str) -> i32 {
         lines.fill(0);
     }
 
-    let mut seconds = line_i;
+    let mut seconds = horizontal_pattern_second;
 
     loop {
-        if (seconds - col_i) % M == 0 {
+        if (seconds - vertical_pattern_second) % M == 0 {
             return seconds;
         }
 
