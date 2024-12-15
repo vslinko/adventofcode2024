@@ -101,18 +101,16 @@ pub fn part2(input: &str) -> i32 {
     unsafe { inner2(input) }
 }
 
-macro_rules! is_dispersion_big {
-    ($arr:expr, $len:expr) => {{
-        let mut sum = 0;
-        let mut sum_sq = 0;
+fn is_dispersion_big(arr: &[i32], len: i32) -> bool {
+    let mut sum = 0;
+    let mut sum_sq = 0;
 
-        for &count in $arr {
-            sum += count;
-            sum_sq += count * count;
-        }
+    for &count in arr {
+        sum += count;
+        sum_sq += count * count;
+    }
 
-        sum_sq * $len - sum * sum > DISPERSION_THRESHOLD
-    }};
+    sum_sq * len - sum * sum > DISPERSION_THRESHOLD
 }
 
 unsafe fn inner2(input: &str) -> i32 {
@@ -136,11 +134,14 @@ unsafe fn inner2(input: &str) -> i32 {
     }
 
     let mut seconds = 0;
-    let mut speed = 1;
     let mut columns = [0; MS];
     let mut lines = [0; NS];
+    let mut col_i = 0;
+    let mut line_i = 0;
 
     loop {
+        seconds += 1;
+
         for (px, py, vx, vy) in robots.iter() {
             let x = ((px + seconds * vx) % M + M) % M;
             let y = ((py + seconds * vy) % N + N) % N;
@@ -149,26 +150,34 @@ unsafe fn inner2(input: &str) -> i32 {
             *lines.get_unchecked_mut(y as usize) += 1;
         }
 
-        match (
-            is_dispersion_big!(&columns, M),
-            is_dispersion_big!(&lines, N),
-        ) {
-            (true, true) => {
-                return seconds;
+        if col_i == 0 && is_dispersion_big(&columns, M) {
+            col_i = seconds;
+
+            if line_i != 0 {
+                break;
             }
-            (true, false) => {
-                speed = M;
+        }
+
+        if line_i == 0 && is_dispersion_big(&lines, N) {
+            line_i = seconds;
+
+            if col_i != 0 {
+                break;
             }
-            (false, true) => {
-                speed = N;
-            }
-            (false, false) => {}
         }
 
         columns.fill(0);
         lines.fill(0);
+    }
 
-        seconds += speed;
+    let mut seconds = line_i;
+
+    loop {
+        if (seconds - col_i) % M == 0 {
+            return seconds;
+        }
+
+        seconds += N;
     }
 }
 
