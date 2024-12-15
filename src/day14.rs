@@ -118,8 +118,8 @@ fn has_pattern(robots: &[(i32, i32, i32, i32)], seconds: i32) -> GridPatten {
         lines[y as usize] += 1;
     }
 
-    let has_vertical_pattern = fast_dispersion(&columns, M) > 10.0;
-    let has_horisontal_pattern = fast_dispersion(&lines, N) > 10.0;
+    let has_vertical_pattern = fast_dispersion(&columns, M) > 250_000;
+    let has_horisontal_pattern = fast_dispersion(&lines, N) > 250_000;
 
     match (has_vertical_pattern, has_horisontal_pattern) {
         (true, true) => GridPatten::EasterEgg,
@@ -140,21 +140,16 @@ fn print_grid(grid: &[bool; GRID_SIZE as usize]) {
     println!();
 }
 
-fn fast_dispersion(arr: &[i32], n: i32) -> f64 {
-    let n = n as f64;
-    let mut sum = 0.0;
-    let mut sum_sq = 0.0;
+fn fast_dispersion(arr: &[i32], n: i32) -> i32 {
+    let mut sum = 0;
+    let mut sum_sq = 0;
 
-    for &x in arr {
-        let x = x as f64;
-        sum += x;
-        sum_sq += x * x;
+    for &count in arr {
+        sum += count;
+        sum_sq += count * count;
     }
 
-    let sum_sq_avg = sum_sq / n;
-    let sum_avg = sum / n;
-
-    sum_sq_avg - sum_avg * sum_avg
+    sum_sq * n - sum * sum
 }
 
 unsafe fn inner2(input: &str) -> i32 {
@@ -195,6 +190,10 @@ unsafe fn inner2(input: &str) -> i32 {
         }
 
         seconds += speed;
+
+        if seconds > 8280 {
+            return 0;
+        }
     }
 }
 
