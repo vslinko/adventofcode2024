@@ -6,6 +6,7 @@ use solution::day11;
 use solution::day12;
 use solution::day13;
 use solution::day13_simd;
+use solution::day14;
 use solution::day9;
 
 pub fn day9(c: &mut Criterion) {
@@ -76,5 +77,17 @@ pub fn day13_simd(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, day9, day10, day11, day12, day13, day13_simd);
+pub fn day14(c: &mut Criterion) {
+    let s = read_to_string("./inputs/14.txt").unwrap();
+    let s = s.as_str();
+
+    c.bench_function("bench_day14_part1", |b| {
+        b.iter(|| day14::part1(black_box(s)))
+    });
+    c.bench_function("bench_day14_part2", |b| {
+        b.iter(|| day14::part2(black_box(s)))
+    });
+}
+
+criterion_group!(benches, day9, day10, day11, day12, day13, day13_simd, day14);
 criterion_main!(benches);
