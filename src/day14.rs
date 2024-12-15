@@ -1,8 +1,10 @@
-#[derive(Debug)]
-struct Robot {
-    p: Vec<i32>,
-    v: Vec<i32>,
-}
+const M: i32 = 101;
+const N: i32 = 103;
+const GRID_SIZE: i32 = M * N;
+const HALF_M: i32 = M / 2;
+const HALF_N: i32 = N / 2;
+const PART1_SECONDS: i32 = 100;
+const PART2_ROBOTS: usize = 500;
 
 macro_rules! read {
     ($input:expr, $i:expr) => {{
@@ -56,11 +58,7 @@ pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
 }
 
-const PART1_SECONDS: i32 = 100;
-
 unsafe fn inner1(input: &str) -> usize {
-    let m = 101;
-    let n = 103;
     let input = input.as_bytes();
 
     let mut i = 0;
@@ -80,16 +78,16 @@ unsafe fn inner1(input: &str) -> usize {
         let vy = read_signed!(input, i);
         i += 1; // skip "\n"
 
-        let x = ((px + PART1_SECONDS * vx) % m + m) % m;
-        let y = ((py + PART1_SECONDS * vy) % n + n) % n;
+        let x = ((px + PART1_SECONDS * vx) % M + M) % M;
+        let y = ((py + PART1_SECONDS * vy) % N + N) % N;
 
-        if x < m / 2 && y < n / 2 {
+        if x < HALF_M && y < HALF_N {
             left_top += 1;
-        } else if x > m / 2 && y < n / 2 {
+        } else if x > HALF_M && y < HALF_N {
             right_top += 1;
-        } else if x < m / 2 && y > n / 2 {
+        } else if x < HALF_M && y > HALF_N {
             left_bottom += 1;
-        } else if x > m / 2 && y > n / 2 {
+        } else if x > HALF_M && y > HALF_N {
             right_bottom += 1;
         }
     }
@@ -98,72 +96,75 @@ unsafe fn inner1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> i32 {
-    let mut robots: Vec<Robot> = input
-        .trim()
-        .lines()
-        .map(|line| {
-            let mut parts = line.split_whitespace();
-            let p: Vec<i32> = parts
-                .next()
-                .unwrap()
-                .trim_start_matches("p=")
-                .split(',')
-                .map(|n| n.parse().unwrap())
-                .collect();
-            let v: Vec<i32> = parts
-                .next()
-                .unwrap()
-                .trim_start_matches("v=")
-                .split(',')
-                .map(|n| n.parse().unwrap())
-                .collect();
-            Robot { p, v }
-        })
-        .collect();
+    unsafe { inner2(input) }
+}
 
-    let m = 101;
-    let n = 103;
-    let mut iter = 0;
+fn calculate_robots_group_size(visited: &mut [bool], result: &[bool], x: i32, y: i32) -> i32 {
+    let index = y * M + x;
+    let i = index as usize;
 
-    loop {
-        for robot in robots.iter_mut() {
-            robot.p[0] += robot.v[0];
-            if robot.p[0] < 0 {
-                robot.p[0] = m + robot.p[0];
-            }
-            if robot.p[0] >= m {
-                robot.p[0] = robot.p[0] - m;
-            }
-            robot.p[1] += robot.v[1];
-            if robot.p[1] < 1 {
-                robot.p[1] = n + robot.p[1];
-            }
-            if robot.p[1] >= n {
-                robot.p[1] = robot.p[1] - n;
-            }
-        }
-        iter += 1;
+    if index < 0 || index >= GRID_SIZE || visited[i] || !result[i] {
+        return 0;
+    }
 
-        // temp hack
-        if iter < 8270 {
-            continue;
-        }
+    visited[i] = true;
 
-        for y in 0..n {
-            let mut robots_in_row = 0;
-            for x in 0..m {
-                if robots.iter().any(|r| r.p[0] == x && r.p[1] == y) {
-                    robots_in_row += 1;
+    return 1
+        + calculate_robots_group_size(visited, result, x, y + 1)
+        + calculate_robots_group_size(visited, result, x, y - 1)
+        + calculate_robots_group_size(visited, result, x + 1, y)
+        + calculate_robots_group_size(visited, result, x - 1, y);
+}
 
-                    if robots_in_row == 11 {
-                        return iter;
-                    }
-                } else {
-                    robots_in_row = 0;
-                }
-            }
+fn find_max_robots_group(robots: &[(i32, i32, i32, i32)], seconds: i32) -> i32 {
+    let mut grid = vec![false; GRID_SIZE as usize];
+    let mut visited = vec![false; GRID_SIZE as usize];
+    let mut maximum = 0;
+
+    for (px, py, vx, vy) in robots.iter() {
+        let x = ((px + seconds * vx) % M + M) % M;
+        let y = ((py + seconds * vy) % N + N) % N;
+        grid[(y * M + x) as usize] = true;
+    }
+
+    for i in 0..GRID_SIZE {
+        if grid[i as usize] {
+            let x = i % M;
+            let y = i / M;
+            maximum = maximum.max(calculate_robots_group_size(&mut visited, &grid, x, y));
         }
     }
+
+    maximum
+}
+
+unsafe fn inner2(input: &str) -> i32 {
+    let input = input.as_bytes();
+
+    let mut robots = [(0, 0, 0, 0); PART2_ROBOTS];
+    let mut i = 0;
+    let mut r = 0;
+
+    while i < input.len() {
+        i += 2; // skip "p="
+        robots[r].0 = read!(input, i);
+        i += 1; // skip ","
+        robots[r].1 = read!(input, i);
+        i += 3; // skip " v="
+        robots[r].2 = read_signed!(input, i);
+        i += 1; // skip ","
+        robots[r].3 = read_signed!(input, i);
+        i += 1; // skip "\n"
+        r += 1;
+    }
+
+    let mut seconds = 1;
+
+    while find_max_robots_group(&robots, seconds) < 62 {
+        seconds += 1;
+    }
+
+    seconds
 }
 
 #[cfg(test)]
