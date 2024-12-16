@@ -14,7 +14,7 @@ const END_X: usize = WIDTH - 2;
 const END_Y: usize = 1;
 const END_INDEX: usize = END_Y * LINE_LENGTH + END_X;
 
-#[derive(Eq, PartialEq, Hash, Clone)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 enum Direction {
     North,
     South,
@@ -123,51 +123,55 @@ unsafe fn inner1(input: &str) -> usize {
     find_fastest_path_score(input)
 }
 
-fn get_neighbors_with_direction2(point: &(usize, Direction)) -> [(usize, Direction, usize); 3] {
-    match point.1 {
+fn get_neighbors_with_direction2(
+    index: usize,
+    direction: Direction,
+) -> [(usize, Direction, usize); 3] {
+    match direction {
         Direction::East => [
-            (point.0 + 1, Direction::East, 1),
-            (point.0, Direction::North, 1000),
-            (point.0, Direction::South, 1000),
+            (index + 1, Direction::East, 1),
+            (index, Direction::North, 1000),
+            (index, Direction::South, 1000),
         ],
         Direction::West => [
-            (point.0 - 1, Direction::West, 1),
-            (point.0, Direction::North, 1000),
-            (point.0, Direction::South, 1000),
+            (index - 1, Direction::West, 1),
+            (index, Direction::North, 1000),
+            (index, Direction::South, 1000),
         ],
         Direction::North => [
-            (point.0 - LINE_LENGTH, Direction::North, 1),
-            (point.0, Direction::West, 1000),
-            (point.0, Direction::East, 1000),
+            (index - LINE_LENGTH, Direction::North, 1),
+            (index, Direction::West, 1000),
+            (index, Direction::East, 1000),
         ],
         Direction::South => [
-            (point.0 + LINE_LENGTH, Direction::South, 1),
-            (point.0, Direction::West, 1000),
-            (point.0, Direction::East, 1000),
+            (index + LINE_LENGTH, Direction::South, 1),
+            (index, Direction::West, 1000),
+            (index, Direction::East, 1000),
         ],
     }
 }
 
 unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
-    let start = (START_INDEX, Direction::East);
     let mut unique_cells = FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default());
     let mut queue = VecDeque::new();
     let mut scores = FxHashMap::with_capacity_and_hasher(100, FxBuildHasher::default());
 
-    queue.push_back((vec![start.clone()], 0));
-    scores.insert(start, 0_usize);
+    queue.push_back((vec![START_INDEX], Direction::East, 0));
+    scores.insert((START_INDEX, Direction::East), 0_usize);
 
-    while let Some((current_path, score)) = queue.pop_front() {
-        let current = current_path.last().unwrap_unchecked();
+    while let Some((current_path, current_direction, score)) = queue.pop_front() {
+        let current_index = *current_path.last().unwrap_unchecked();
 
-        if current.0 == END_INDEX {
+        if current_index == END_INDEX {
             for path in current_path {
-                unique_cells.insert(path.0);
+                unique_cells.insert(path);
             }
             continue;
         }
 
-        for (next_index, next_direction, next_score) in get_neighbors_with_direction2(&current) {
+        for (next_index, next_direction, next_score) in
+            get_neighbors_with_direction2(current_index, current_direction)
+        {
             if *input.get_unchecked(next_index) != b'#' {
                 let new_score = score + next_score;
 
@@ -175,16 +179,16 @@ unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score:
                     continue;
                 }
 
-                let next_point = (next_index, next_direction);
-
-                let current_score = scores.get(&next_point).unwrap_or(&usize::MAX);
+                let current_score = scores
+                    .get(&(next_index, next_direction))
+                    .unwrap_or(&usize::MAX);
 
                 if new_score <= *current_score {
-                    scores.insert(next_point.clone(), new_score);
+                    scores.insert((next_index, next_direction), new_score);
 
                     let mut new_path = current_path.clone();
-                    new_path.push(next_point);
-                    queue.push_back((new_path, new_score));
+                    new_path.push(next_index);
+                    queue.push_back((new_path, next_direction, new_score));
                 }
             }
         }
