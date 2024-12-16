@@ -170,43 +170,53 @@ fn get_scores_index(index: usize, direction: Direction) -> usize {
     }
 }
 
+struct QueueItem {
+    path: smallvec::SmallVec<[usize; 8]>,
+    direction: Direction,
+    score: usize,
+}
+
 unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
     let mut unique_cells = Vec::with_capacity((LINE_LENGTH * HEIGHT) / 2);
     let mut queue = VecDeque::with_capacity((LINE_LENGTH * HEIGHT) / 4);
     let mut scores = [usize::MAX; LINE_LENGTH * HEIGHT * 4];
 
-    queue.push_back((
-        smallvec::SmallVec::<[usize; 8]>::from_slice(&[START_INDEX]),
-        Direction::East,
-        0,
-    ));
+    queue.push_back(QueueItem {
+        path: smallvec::SmallVec::<[usize; 8]>::from_slice(&[START_INDEX]),
+        direction: Direction::East,
+        score: 0,
+    });
     scores[get_scores_index(START_INDEX, Direction::East)] = 0;
 
-    while let Some((current_path, current_direction, score)) = queue.pop_front() {
-        let current_index = *current_path.last().unwrap_unchecked();
+    while let Some(item) = queue.pop_front() {
+        let current_index = *item.path.last().unwrap_unchecked();
 
         if current_index == END_INDEX {
-            unique_cells.extend(current_path.iter().copied());
+            unique_cells.extend(item.path.iter().copied());
             continue;
         }
 
         for (next_index, next_direction, next_score) in
-            get_neighbors_with_direction2(current_index, current_direction)
+            get_neighbors_with_direction2(current_index, item.direction)
         {
-            if *input.get_unchecked(next_index) == b'#' || score + next_score > max_score {
+            if *input.get_unchecked(next_index) == b'#' || item.score + next_score > max_score {
                 continue;
             }
 
-            let new_score = score + next_score;
+            let new_score = item.score + next_score;
             let scores_index = get_scores_index(next_index, next_direction);
             let current_score = scores[scores_index];
 
             if new_score <= current_score {
                 scores[scores_index] = new_score;
 
-                let mut new_path = current_path.clone();
+                let mut new_path = item.path.clone();
                 new_path.push(next_index);
-                queue.push_back((new_path, next_direction, new_score));
+                queue.push_back(QueueItem {
+                    path: new_path,
+                    direction: next_direction,
+                    score: new_score,
+                });
             }
         }
     }
