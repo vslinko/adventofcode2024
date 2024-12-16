@@ -248,88 +248,97 @@ unsafe fn inner2(input: &str) -> usize {
         match movement {
             b'^' => {
                 let next_pos = robot_pos - WIDTH2;
-                if grid[next_pos] == b'.' {
-                    robot_pos = next_pos;
-                } else if is_box(grid[next_pos]) {
-                    let mut boxes_to_move =
-                        FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
+                match grid[next_pos] {
+                    b'.' => robot_pos = next_pos,
+                    b'[' | b']' => {
+                        let mut boxes_to_move =
+                            FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_up(&grid, &mut boxes_to_move, next_pos) {
-                        continue;
+                        if !recursive_move_up(&grid, &mut boxes_to_move, next_pos) {
+                            continue;
+                        }
+
+                        let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
+                        moves.sort_unstable_by_key(|&pos| pos / WIDTH2);
+
+                        for &pos in moves {
+                            grid[pos - WIDTH2] = grid[pos];
+                            grid[pos] = b'.';
+                        }
+                        robot_pos = next_pos;
                     }
-
-                    let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                    moves.sort_unstable_by_key(|&pos| pos / WIDTH2);
-
-                    for &pos in moves {
-                        grid[pos - WIDTH2] = grid[pos];
-                        grid[pos] = b'.';
-                    }
-                    robot_pos = next_pos;
+                    _ => {}
                 }
             }
             b'v' => {
                 let next_pos = robot_pos + WIDTH2;
-                if grid[next_pos] == b'.' {
-                    robot_pos = next_pos;
-                } else if is_box(grid[next_pos]) {
-                    let mut boxes_to_move =
-                        FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
+                match grid[next_pos] {
+                    b'.' => robot_pos = next_pos,
+                    b'[' | b']' => {
+                        let mut boxes_to_move =
+                            FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_down(&grid, &mut boxes_to_move, next_pos) {
-                        continue;
+                        if !recursive_move_down(&grid, &mut boxes_to_move, next_pos) {
+                            continue;
+                        }
+
+                        let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
+                        moves.sort_unstable_by_key(|&pos| std::cmp::Reverse(pos / WIDTH2));
+
+                        for &pos in moves {
+                            grid[pos + WIDTH2] = grid[pos];
+                            grid[pos] = b'.';
+                        }
+                        robot_pos = next_pos;
                     }
-
-                    let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                    moves.sort_unstable_by_key(|&pos| std::cmp::Reverse(pos / WIDTH2));
-
-                    for &pos in moves {
-                        grid[pos + WIDTH2] = grid[pos];
-                        grid[pos] = b'.';
-                    }
-                    robot_pos = next_pos;
+                    _ => {}
                 }
             }
             b'<' => {
                 let next_pos = robot_pos - 1;
-                if grid[next_pos] == b'.' {
-                    robot_pos = next_pos;
-                } else if is_box(grid[next_pos]) {
-                    let row_start = robot_pos - robot_pos % WIDTH2;
-                    for pos in (row_start..next_pos).rev() {
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            for curr_pos in pos..robot_pos {
-                                grid[curr_pos] = grid[curr_pos + 1];
+                match grid[next_pos] {
+                    b'.' => robot_pos = next_pos,
+                    b'[' | b']' => {
+                        let row_start = robot_pos - robot_pos % WIDTH2;
+                        for pos in (row_start..next_pos).rev() {
+                            if grid[pos] == b'#' {
+                                break;
                             }
-                            grid[next_pos] = b'.';
-                            robot_pos = next_pos;
-                            break;
+                            if grid[pos] == b'.' {
+                                for curr_pos in pos..robot_pos {
+                                    grid[curr_pos] = grid[curr_pos + 1];
+                                }
+                                grid[next_pos] = b'.';
+                                robot_pos = next_pos;
+                                break;
+                            }
                         }
                     }
+                    _ => {}
                 }
             }
             b'>' => {
                 let next_pos = robot_pos + 1;
-                if grid[next_pos] == b'.' {
-                    robot_pos = next_pos;
-                } else if is_box(grid[next_pos]) {
-                    let row_end = robot_pos - robot_pos % WIDTH2 + WIDTH2;
-                    for pos in robot_pos + 2..row_end {
-                        if grid[pos] == b'#' {
-                            break;
-                        }
-                        if grid[pos] == b'.' {
-                            for curr_pos in (next_pos..=pos).rev() {
-                                grid[curr_pos] = grid[curr_pos - 1];
+                match grid[next_pos] {
+                    b'.' => robot_pos = next_pos,
+                    b'[' | b']' => {
+                        let row_end = robot_pos - robot_pos % WIDTH2 + WIDTH2;
+                        for pos in robot_pos + 2..row_end {
+                            match grid[pos] {
+                                b'#' => break,
+                                b'.' => {
+                                    for curr_pos in (robot_pos + 1..=pos).rev() {
+                                        grid[curr_pos] = grid[curr_pos - 1];
+                                    }
+                                    grid[next_pos] = b'.';
+                                    robot_pos = next_pos;
+                                    break;
+                                }
+                                _ => {}
                             }
-                            grid[next_pos] = b'.';
-                            robot_pos = next_pos;
-                            break;
                         }
                     }
+                    _ => {}
                 }
             }
             _ => {}
