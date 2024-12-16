@@ -196,17 +196,18 @@ unsafe fn inner2(input: &str) -> usize {
             pos -= 1;
         }
 
-        if grid[pos - WIDTH2] == b'#' || grid[pos - WIDTH2 + 1] == b'#' {
+        let next_pos = pos - WIDTH2;
+        let next_pos1 = next_pos + 1;
+
+        if grid[next_pos] == b'#' || grid[next_pos1] == b'#' {
             return false;
         }
 
-        if is_box(grid[pos - WIDTH2]) && !recursive_move_up(grid, boxes_to_move, pos - WIDTH2) {
+        if is_box(grid[next_pos]) && !recursive_move_up(grid, boxes_to_move, next_pos) {
             return false;
         }
 
-        if grid[pos - WIDTH2 + 1] == b'['
-            && !recursive_move_up(grid, boxes_to_move, pos - WIDTH2 + 1)
-        {
+        if grid[next_pos1] == b'[' && !recursive_move_up(grid, boxes_to_move, next_pos1) {
             return false;
         }
 
@@ -222,17 +223,18 @@ unsafe fn inner2(input: &str) -> usize {
             pos -= 1;
         }
 
-        if grid[pos + WIDTH2] == b'#' || grid[pos + WIDTH2 + 1] == b'#' {
+        let next_pos = pos + WIDTH2;
+        let next_pos1 = next_pos + 1;
+
+        if grid[next_pos] == b'#' || grid[next_pos1] == b'#' {
             return false;
         }
 
-        if is_box(grid[pos + WIDTH2]) && !recursive_move_down(grid, boxes_to_move, pos + WIDTH2) {
+        if is_box(grid[next_pos]) && !recursive_move_down(grid, boxes_to_move, next_pos) {
             return false;
         }
 
-        if grid[pos + WIDTH2 + 1] == b'['
-            && !recursive_move_down(grid, boxes_to_move, pos + WIDTH2 + 1)
-        {
+        if grid[next_pos1] == b'[' && !recursive_move_down(grid, boxes_to_move, next_pos1) {
             return false;
         }
 
@@ -245,13 +247,14 @@ unsafe fn inner2(input: &str) -> usize {
     for &movement in moves.iter() {
         match movement {
             b'^' => {
-                if grid[robot_pos - WIDTH2] == b'.' {
-                    robot_pos -= WIDTH2;
-                } else if is_box(grid[robot_pos - WIDTH2]) {
+                let next_pos = robot_pos - WIDTH2;
+                if grid[next_pos] == b'.' {
+                    robot_pos = next_pos;
+                } else if is_box(grid[next_pos]) {
                     let mut boxes_to_move =
                         FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_up(&grid, &mut boxes_to_move, robot_pos - WIDTH2) {
+                    if !recursive_move_up(&grid, &mut boxes_to_move, next_pos) {
                         continue;
                     }
 
@@ -262,17 +265,18 @@ unsafe fn inner2(input: &str) -> usize {
                         grid[pos - WIDTH2] = grid[pos];
                         grid[pos] = b'.';
                     }
-                    robot_pos -= WIDTH2;
+                    robot_pos = next_pos;
                 }
             }
             b'v' => {
-                if grid[robot_pos + WIDTH2] == b'.' {
-                    robot_pos += WIDTH2;
-                } else if is_box(grid[robot_pos + WIDTH2]) {
+                let next_pos = robot_pos + WIDTH2;
+                if grid[next_pos] == b'.' {
+                    robot_pos = next_pos;
+                } else if is_box(grid[next_pos]) {
                     let mut boxes_to_move =
                         FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_down(&grid, &mut boxes_to_move, robot_pos + WIDTH2) {
+                    if !recursive_move_down(&grid, &mut boxes_to_move, next_pos) {
                         continue;
                     }
 
@@ -283,15 +287,16 @@ unsafe fn inner2(input: &str) -> usize {
                         grid[pos + WIDTH2] = grid[pos];
                         grid[pos] = b'.';
                     }
-                    robot_pos += WIDTH2;
+                    robot_pos = next_pos;
                 }
             }
             b'<' => {
-                if grid[robot_pos - 1] == b'.' {
-                    robot_pos -= 1;
-                } else if is_box(grid[robot_pos - 1]) {
+                let next_pos = robot_pos - 1;
+                if grid[next_pos] == b'.' {
+                    robot_pos = next_pos;
+                } else if is_box(grid[next_pos]) {
                     let row_start = robot_pos - robot_pos % WIDTH2;
-                    for pos in (row_start..robot_pos - 1).rev() {
+                    for pos in (row_start..next_pos).rev() {
                         if grid[pos] == b'#' {
                             break;
                         }
@@ -299,35 +304,35 @@ unsafe fn inner2(input: &str) -> usize {
                             for curr_pos in pos..robot_pos {
                                 grid[curr_pos] = grid[curr_pos + 1];
                             }
-                            grid[robot_pos - 1] = b'.';
-                            robot_pos -= 1;
+                            grid[next_pos] = b'.';
+                            robot_pos = next_pos;
                             break;
                         }
                     }
                 }
             }
             b'>' => {
-                if grid[robot_pos + 1] == b'.' {
-                    robot_pos += 1;
-                } else if is_box(grid[robot_pos + 1]) {
+                let next_pos = robot_pos + 1;
+                if grid[next_pos] == b'.' {
+                    robot_pos = next_pos;
+                } else if is_box(grid[next_pos]) {
                     let row_end = robot_pos - robot_pos % WIDTH2 + WIDTH2;
                     for pos in robot_pos + 2..row_end {
                         if grid[pos] == b'#' {
                             break;
                         }
                         if grid[pos] == b'.' {
-                            for curr_pos in (robot_pos + 1..=pos).rev() {
+                            for curr_pos in (next_pos..=pos).rev() {
                                 grid[curr_pos] = grid[curr_pos - 1];
                             }
-                            grid[robot_pos + 1] = b'.';
-                            robot_pos += 1;
+                            grid[next_pos] = b'.';
+                            robot_pos = next_pos;
                             break;
                         }
                     }
                 }
             }
-            b'\n' => {}
-            _ => panic!("Unknown move: {}", movement),
+            _ => {}
         }
     }
 
