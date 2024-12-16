@@ -1,9 +1,12 @@
-use std::collections::HashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 const WIDTH: usize = 50;
 const HEIGHT: usize = 50;
 const LINE_WIDTH: usize = WIDTH + 1;
 const GRID_LENGTH: usize = HEIGHT * LINE_WIDTH;
+
+const WIDTH2: usize = 100;
+const HEIGHT2: usize = 50;
 
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
@@ -140,84 +143,80 @@ unsafe fn inner1(input: &str) -> usize {
     solution
 }
 
+fn get_index2(x: usize, y: usize) -> usize {
+    y * WIDTH2 + x
+}
+
 pub fn part2(input: &str) -> i32 {
     unsafe { inner2(input) }
 }
 
 unsafe fn inner2(input: &str) -> i32 {
-    let mut parts = input.trim().split("\n\n");
-    let grid_str = parts.next().unwrap();
-    let moves = parts.next().unwrap().trim().chars().collect::<Vec<char>>();
-
-    let mut grid: Vec<Vec<char>> = Vec::new();
-    for line in grid_str.lines() {
-        let mut new_row = Vec::new();
-        for c in line.chars() {
+    let moves = input[GRID_LENGTH + 1..].as_bytes();
+    let mut grid = input[0..GRID_LENGTH - 1]
+        .as_bytes()
+        .iter()
+        .fold(vec![], |mut acc, c| {
             match c {
-                '@' => {
-                    new_row.push('@');
-                    new_row.push('.');
+                b'@' => {
+                    acc.push(b'@');
+                    acc.push(b'.');
                 }
-                '#' => {
-                    new_row.push('#');
-                    new_row.push('#');
+                b'O' => {
+                    acc.push(b'[');
+                    acc.push(b']');
                 }
-                'O' => {
-                    new_row.push('[');
-                    new_row.push(']');
+                b'#' => {
+                    acc.push(b'#');
+                    acc.push(b'#');
                 }
-                '.' => {
-                    new_row.push('.');
-                    new_row.push('.');
+                b'.' => {
+                    acc.push(b'.');
+                    acc.push(b'.');
                 }
-                _ => panic!("Unknown cell: {}", c),
+                b'\n' => {}
+                _ => panic!(),
             }
-        }
-        grid.push(new_row);
-    }
+            acc
+        });
 
-    let m = grid[0].len();
-    let n = grid.len();
+    let robot_pos = grid
+        .iter()
+        .position(|&cell| cell == b'@')
+        .unwrap_unchecked();
+    let mut robot_y = robot_pos / WIDTH2;
+    let mut robot_x = robot_pos % WIDTH2;
+    *grid.get_unchecked_mut(robot_pos) = b'.';
 
-    let mut robot_y = 0;
-    let mut robot_x = 0;
-    'outer: for (y, row) in grid.iter().enumerate() {
-        for (x, &cell) in row.iter().enumerate() {
-            if cell == '@' {
-                robot_y = y;
-                robot_x = x;
-                break 'outer;
-            }
-        }
-    }
-    grid[robot_y][robot_x] = '.';
-
-    fn is_box(cell: char) -> bool {
-        cell == '[' || cell == ']'
+    #[inline(always)]
+    fn is_box(cell: u8) -> bool {
+        cell == b'[' || cell == b']'
     }
 
     fn recursive_move_up(
-        grid: &Vec<Vec<char>>,
-        boxes_to_move: &mut HashSet<(usize, usize)>,
+        grid: &[u8],
+        boxes_to_move: &mut FxHashSet<(usize, usize)>,
         x: usize,
         y: usize,
     ) -> bool {
         let mut curr_x = x;
-        if grid[y][curr_x] == ']' {
+        if grid[get_index2(curr_x, y)] == b']' {
             curr_x -= 1;
         }
 
-        assert_eq!(grid[y][curr_x], '[');
+        // assert_eq!(grid[y][curr_x], '[');
 
-        if grid[y - 1][curr_x] == '#' || grid[y - 1][curr_x + 1] == '#' {
+        if grid[get_index2(curr_x, y - 1)] == b'#' || grid[get_index2(curr_x + 1, y - 1)] == b'#' {
             return false;
         }
 
-        if is_box(grid[y - 1][curr_x]) && !recursive_move_up(grid, boxes_to_move, curr_x, y - 1) {
+        if is_box(grid[get_index2(curr_x, y - 1)])
+            && !recursive_move_up(grid, boxes_to_move, curr_x, y - 1)
+        {
             return false;
         }
 
-        if grid[y - 1][curr_x + 1] == '['
+        if grid[get_index2(curr_x + 1, y - 1)] == b'['
             && !recursive_move_up(grid, boxes_to_move, curr_x + 1, y - 1)
         {
             return false;
@@ -230,27 +229,29 @@ unsafe fn inner2(input: &str) -> i32 {
     }
 
     fn recursive_move_down(
-        grid: &Vec<Vec<char>>,
-        boxes_to_move: &mut HashSet<(usize, usize)>,
+        grid: &[u8],
+        boxes_to_move: &mut FxHashSet<(usize, usize)>,
         x: usize,
         y: usize,
     ) -> bool {
         let mut curr_x = x;
-        if grid[y][curr_x] == ']' {
+        if grid[get_index2(curr_x, y)] == b']' {
             curr_x -= 1;
         }
 
-        assert_eq!(grid[y][curr_x], '[');
+        // assert_eq!(grid[y][curr_x], '[');
 
-        if grid[y + 1][curr_x] == '#' || grid[y + 1][curr_x + 1] == '#' {
+        if grid[get_index2(curr_x, y + 1)] == b'#' || grid[get_index2(curr_x + 1, y + 1)] == b'#' {
             return false;
         }
 
-        if is_box(grid[y + 1][curr_x]) && !recursive_move_down(grid, boxes_to_move, curr_x, y + 1) {
+        if is_box(grid[get_index2(curr_x, y + 1)])
+            && !recursive_move_down(grid, boxes_to_move, curr_x, y + 1)
+        {
             return false;
         }
 
-        if grid[y + 1][curr_x + 1] == '['
+        if grid[get_index2(curr_x + 1, y + 1)] == b'['
             && !recursive_move_down(grid, boxes_to_move, curr_x + 1, y + 1)
         {
             return false;
@@ -264,11 +265,12 @@ unsafe fn inner2(input: &str) -> i32 {
 
     for &movement in moves.iter() {
         match movement {
-            '^' => {
-                if grid[robot_y - 1][robot_x] == '.' {
+            b'^' => {
+                if grid[get_index2(robot_x, robot_y - 1)] == b'.' {
                     robot_y -= 1;
-                } else if is_box(grid[robot_y - 1][robot_x]) {
-                    let mut boxes_to_move = HashSet::new();
+                } else if is_box(grid[get_index2(robot_x, robot_y - 1)]) {
+                    let mut boxes_to_move =
+                        FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
                     if !recursive_move_up(&grid, &mut boxes_to_move, robot_x, robot_y - 1) {
                         continue;
@@ -278,17 +280,18 @@ unsafe fn inner2(input: &str) -> i32 {
                     moves.sort_unstable_by_key(|&(_, y)| y);
 
                     for &(x, y) in moves {
-                        grid[y - 1][x] = grid[y][x];
-                        grid[y][x] = '.';
+                        grid[get_index2(x, y - 1)] = grid[get_index2(x, y)];
+                        grid[get_index2(x, y)] = b'.';
                     }
                     robot_y -= 1;
                 }
             }
-            'v' => {
-                if grid[robot_y + 1][robot_x] == '.' {
+            b'v' => {
+                if grid[get_index2(robot_x, robot_y + 1)] == b'.' {
                     robot_y += 1;
-                } else if is_box(grid[robot_y + 1][robot_x]) {
-                    let mut boxes_to_move = HashSet::new();
+                } else if is_box(grid[get_index2(robot_x, robot_y + 1)]) {
+                    let mut boxes_to_move =
+                        FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
                     if !recursive_move_down(&grid, &mut boxes_to_move, robot_x, robot_y + 1) {
                         continue;
@@ -298,69 +301,61 @@ unsafe fn inner2(input: &str) -> i32 {
                     moves.sort_by_key(|&(_, y)| std::cmp::Reverse(y));
 
                     for &(x, y) in moves {
-                        grid[y + 1][x] = grid[y][x];
-                        grid[y][x] = '.';
+                        grid[get_index2(x, y + 1)] = grid[get_index2(x, y)];
+                        grid[get_index2(x, y)] = b'.';
                     }
                     robot_y += 1;
                 }
             }
-            '<' => {
-                if grid[robot_y][robot_x - 1] == '.' {
+            b'<' => {
+                if grid[get_index2(robot_x - 1, robot_y)] == b'.' {
                     robot_x -= 1;
-                } else if is_box(grid[robot_y][robot_x - 1]) {
-                    let mut next_dot_index = None;
+                } else if is_box(grid[get_index2(robot_x - 1, robot_y)]) {
                     for x in (0..robot_x - 1).rev() {
-                        if grid[robot_y][x] == '#' {
+                        if grid[get_index2(x, robot_y)] == b'#' {
                             break;
                         }
-                        if grid[robot_y][x] == '.' {
-                            next_dot_index = Some(x);
+                        if grid[get_index2(x, robot_y)] == b'.' {
+                            for curr_x in x..robot_x {
+                                grid[get_index2(curr_x, robot_y)] =
+                                    grid[get_index2(curr_x + 1, robot_y)];
+                            }
+                            grid[get_index2(robot_x - 1, robot_y)] = b'.';
+                            robot_x -= 1;
                             break;
                         }
-                    }
-
-                    if let Some(x) = next_dot_index {
-                        for curr_x in x..robot_x {
-                            grid[robot_y][curr_x] = grid[robot_y][curr_x + 1];
-                        }
-                        grid[robot_y][robot_x - 1] = '.';
-                        robot_x -= 1;
                     }
                 }
             }
-            '>' => {
-                if grid[robot_y][robot_x + 1] == '.' {
+            b'>' => {
+                if grid[get_index2(robot_x + 1, robot_y)] == b'.' {
                     robot_x += 1;
-                } else if is_box(grid[robot_y][robot_x + 1]) {
-                    let mut next_dot_index = None;
-                    for x in robot_x + 2..m {
-                        if grid[robot_y][x] == '#' {
+                } else if is_box(grid[get_index2(robot_x + 1, robot_y)]) {
+                    for x in robot_x + 2..WIDTH2 {
+                        if grid[get_index2(x, robot_y)] == b'#' {
                             break;
                         }
-                        if grid[robot_y][x] == '.' {
-                            next_dot_index = Some(x);
+                        if grid[get_index2(x, robot_y)] == b'.' {
+                            for curr_x in (robot_x + 1..=x).rev() {
+                                grid[get_index2(curr_x, robot_y)] =
+                                    grid[get_index2(curr_x - 1, robot_y)];
+                            }
+                            grid[get_index2(robot_x + 1, robot_y)] = b'.';
+                            robot_x += 1;
                             break;
                         }
-                    }
-
-                    if let Some(x) = next_dot_index {
-                        for curr_x in (robot_x + 1..=x).rev() {
-                            grid[robot_y][curr_x] = grid[robot_y][curr_x - 1];
-                        }
-                        grid[robot_y][robot_x + 1] = '.';
-                        robot_x += 1;
                     }
                 }
             }
-            '\n' => {}
+            b'\n' => {}
             _ => panic!("Unknown move: {}", movement),
         }
     }
 
     let mut solution = 0;
-    for y in 0..n {
-        for x in 0..m {
-            if grid[y][x] == '[' {
+    for y in 0..HEIGHT2 {
+        for x in 0..WIDTH2 {
+            if grid[get_index2(x, y)] == b'[' {
                 solution += (y * 100 + x) as i32;
             }
         }
