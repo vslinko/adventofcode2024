@@ -1,5 +1,6 @@
+use dary_heap::BinaryHeap;
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::VecDeque;
 
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
