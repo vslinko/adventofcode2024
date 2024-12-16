@@ -2,7 +2,7 @@ use dary_heap::BinaryHeap;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 const WIDTH: usize = 141;
 const HEIGHT: usize = 141;
@@ -157,49 +157,62 @@ fn get_neighbors_with_direction2(
     }
 }
 
-unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
-    let mut unique_cells = FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default());
-    let mut queue = VecDeque::new();
-    let mut scores = FxHashMap::with_capacity_and_hasher(100, FxBuildHasher::default());
+fn get_scores_index(index: usize, direction: Direction) -> usize {
+    const ROW_SIZE1: usize = LINE_LENGTH * HEIGHT;
+    const ROW_SIZE2: usize = LINE_LENGTH * HEIGHT * 2;
+    const ROW_SIZE3: usize = LINE_LENGTH * HEIGHT * 3;
 
-    queue.push_back((vec![START_INDEX], Direction::East, 0));
-    scores.insert((START_INDEX, Direction::East), 0_usize);
+    match direction {
+        Direction::East => index,
+        Direction::West => index + ROW_SIZE1,
+        Direction::North => index + ROW_SIZE2,
+        Direction::South => index + ROW_SIZE3,
+    }
+}
+
+unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
+    let mut unique_cells = Vec::with_capacity((LINE_LENGTH * HEIGHT) / 2);
+    let mut queue = VecDeque::with_capacity((LINE_LENGTH * HEIGHT) / 4);
+    let mut scores = [usize::MAX; LINE_LENGTH * HEIGHT * 4];
+
+    queue.push_back((
+        smallvec::SmallVec::<[usize; 64]>::from_slice(&[START_INDEX]),
+        Direction::East,
+        0,
+    ));
+    scores[get_scores_index(START_INDEX, Direction::East)] = 0;
 
     while let Some((current_path, current_direction, score)) = queue.pop_front() {
         let current_index = *current_path.last().unwrap_unchecked();
 
         if current_index == END_INDEX {
-            for path in current_path {
-                unique_cells.insert(path);
-            }
+            unique_cells.extend(current_path.iter().copied());
             continue;
         }
 
         for (next_index, next_direction, next_score) in
             get_neighbors_with_direction2(current_index, current_direction)
         {
-            if *input.get_unchecked(next_index) != b'#' {
-                let new_score = score + next_score;
+            if *input.get_unchecked(next_index) == b'#' || score + next_score > max_score {
+                continue;
+            }
 
-                if new_score > max_score {
-                    continue;
-                }
+            let new_score = score + next_score;
+            let scores_index = get_scores_index(next_index, next_direction);
+            let current_score = scores[scores_index];
 
-                let current_score = scores
-                    .get(&(next_index, next_direction))
-                    .unwrap_or(&usize::MAX);
+            if new_score <= current_score {
+                scores[scores_index] = new_score;
 
-                if new_score <= *current_score {
-                    scores.insert((next_index, next_direction), new_score);
-
-                    let mut new_path = current_path.clone();
-                    new_path.push(next_index);
-                    queue.push_back((new_path, next_direction, new_score));
-                }
+                let mut new_path = current_path.clone();
+                new_path.push(next_index);
+                queue.push_back((new_path, next_direction, new_score));
             }
         }
     }
 
+    unique_cells.sort_unstable();
+    unique_cells.dedup();
     unique_cells.len()
 }
 
