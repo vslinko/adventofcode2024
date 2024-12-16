@@ -1,5 +1,3 @@
-use rustc_hash::{FxBuildHasher, FxHashSet};
-
 const WIDTH: usize = 50;
 const HEIGHT: usize = 50;
 const LINE_WIDTH: usize = WIDTH + 1;
@@ -185,12 +183,11 @@ unsafe fn inner2(input: &str) -> usize {
         .unwrap_unchecked();
     *grid.get_unchecked_mut(robot_pos) = b'.';
 
-    #[inline(always)]
     fn is_box(cell: u8) -> bool {
         cell == b'[' || cell == b']'
     }
 
-    fn recursive_move_up(grid: &[u8], boxes_to_move: &mut FxHashSet<usize>, pos: usize) -> bool {
+    fn recursive_move_up(grid: &[u8], boxes_to_move: &mut Vec<usize>, pos: usize) -> bool {
         let mut pos = pos;
         if grid[pos] == b']' {
             pos -= 1;
@@ -211,13 +208,13 @@ unsafe fn inner2(input: &str) -> usize {
             return false;
         }
 
-        boxes_to_move.insert(pos);
-        boxes_to_move.insert(pos + 1);
+        boxes_to_move.push(pos);
+        boxes_to_move.push(pos + 1);
 
         true
     }
 
-    fn recursive_move_down(grid: &[u8], boxes_to_move: &mut FxHashSet<usize>, pos: usize) -> bool {
+    fn recursive_move_down(grid: &[u8], boxes_to_move: &mut Vec<usize>, pos: usize) -> bool {
         let mut pos = pos;
         if grid[pos] == b']' {
             pos -= 1;
@@ -238,8 +235,8 @@ unsafe fn inner2(input: &str) -> usize {
             return false;
         }
 
-        boxes_to_move.insert(pos);
-        boxes_to_move.insert(pos + 1);
+        boxes_to_move.push(pos);
+        boxes_to_move.push(pos + 1);
 
         true
     }
@@ -251,17 +248,16 @@ unsafe fn inner2(input: &str) -> usize {
                 match grid[next_pos] {
                     b'.' => robot_pos = next_pos,
                     b'[' | b']' => {
-                        let mut boxes_to_move =
-                            FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
+                        let mut boxes_to_move = Vec::with_capacity(10);
 
                         if !recursive_move_up(&grid, &mut boxes_to_move, next_pos) {
                             continue;
                         }
 
-                        let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                        moves.sort_unstable_by_key(|&pos| pos / WIDTH2);
+                        boxes_to_move.sort_unstable();
+                        boxes_to_move.dedup();
 
-                        for &pos in moves {
+                        for pos in boxes_to_move {
                             grid[pos - WIDTH2] = grid[pos];
                             grid[pos] = b'.';
                         }
@@ -275,17 +271,16 @@ unsafe fn inner2(input: &str) -> usize {
                 match grid[next_pos] {
                     b'.' => robot_pos = next_pos,
                     b'[' | b']' => {
-                        let mut boxes_to_move =
-                            FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
+                        let mut boxes_to_move = Vec::with_capacity(10);
 
                         if !recursive_move_down(&grid, &mut boxes_to_move, next_pos) {
                             continue;
                         }
 
-                        let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                        moves.sort_unstable_by_key(|&pos| std::cmp::Reverse(pos / WIDTH2));
+                        boxes_to_move.sort_unstable();
+                        boxes_to_move.dedup();
 
-                        for &pos in moves {
+                        for &pos in boxes_to_move.iter().rev() {
                             grid[pos + WIDTH2] = grid[pos];
                             grid[pos] = b'.';
                         }
