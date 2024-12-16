@@ -70,8 +70,9 @@ fn get_neighbors_with_direction1(
 }
 
 unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
-    let mut open_set = BinaryHeap::new();
-    let mut closed_set = FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default());
+    let mut open_set = BinaryHeap::with_capacity(1000);
+    let mut closed_set = FxHashSet::with_capacity_and_hasher(1000, FxBuildHasher::default());
+    let mut best_scores = [usize::MAX; LINE_LENGTH * HEIGHT];
 
     let start_node = Node {
         score: 0,
@@ -79,35 +80,40 @@ unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
         direction: Direction::East,
     };
     open_set.push(start_node);
+    best_scores[START_INDEX] = 0;
 
     while let Some(current) = open_set.pop() {
         if current.index == END_INDEX {
             return current.score;
         }
 
-        if !closed_set.insert(current.index) {
+        if current.score > best_scores[current.index] {
             continue;
         }
 
         for (next_index, next_dir, next_score) in
             get_neighbors_with_direction1(current.index, current.direction)
         {
-            if *input.get_unchecked(next_index) == b'#' {
+            if *input.get_unchecked(next_index) == b'#' || closed_set.contains(&next_index) {
                 continue;
             }
 
-            if closed_set.contains(&next_index) {
-                continue;
+            let new_score = current.score + next_score;
+
+            if new_score < best_scores[next_index] {
+                best_scores[next_index] = new_score;
+
+                let next_node = Node {
+                    score: new_score,
+                    index: next_index,
+                    direction: next_dir,
+                };
+
+                open_set.push(next_node);
             }
-
-            let next_node = Node {
-                score: current.score + next_score,
-                index: next_index,
-                direction: next_dir,
-            };
-
-            open_set.push(next_node);
         }
+
+        closed_set.insert(current.index);
     }
 
     usize::MAX
