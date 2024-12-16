@@ -174,8 +174,7 @@ unsafe fn inner2(input: &str) -> usize {
                     acc.push(b'.');
                     acc.push(b'.');
                 }
-                b'\n' => {}
-                _ => panic!(),
+                _ => {}
             }
             acc
         });
