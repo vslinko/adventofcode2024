@@ -1,17 +1,15 @@
 const WIDTH: usize = 50;
+const WIDTH2: usize = WIDTH * 2;
 const HEIGHT: usize = 50;
 const LINE_WIDTH: usize = WIDTH + 1;
 const GRID_LENGTH: usize = HEIGHT * LINE_WIDTH - 1;
 const MOVES_START_INDEX: usize = GRID_LENGTH + 2;
 
-const WIDTH2: usize = 100;
-const HEIGHT2: usize = 50;
-
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
 }
 
-fn get_index(x: usize, y: usize) -> usize {
+fn get_index1(x: usize, y: usize) -> usize {
     y * LINE_WIDTH + x
 }
 
@@ -30,13 +28,13 @@ unsafe fn inner1(input: &str) -> usize {
     for &movement in moves.iter() {
         match movement {
             b'^' => {
-                let up_pos = get_index(robot_x, robot_y.wrapping_sub(1));
+                let up_pos = get_index1(robot_x, robot_y.wrapping_sub(1));
 
                 match grid.get_unchecked(up_pos) {
                     b'.' => robot_y -= 1,
                     b'O' => {
                         for y in (0..robot_y - 1).rev() {
-                            let pos = get_index(robot_x, y);
+                            let pos = get_index1(robot_x, y);
 
                             match grid.get_unchecked(pos) {
                                 b'#' => break,
@@ -54,13 +52,13 @@ unsafe fn inner1(input: &str) -> usize {
                 }
             }
             b'v' => {
-                let down_pos = get_index(robot_x, robot_y + 1);
+                let down_pos = get_index1(robot_x, robot_y + 1);
 
                 match grid.get_unchecked(down_pos) {
                     b'.' => robot_y += 1,
                     b'O' => {
                         for y in (robot_y + 2)..HEIGHT {
-                            let pos = get_index(robot_x, y);
+                            let pos = get_index1(robot_x, y);
 
                             match grid.get_unchecked(pos) {
                                 b'#' => break,
@@ -78,13 +76,13 @@ unsafe fn inner1(input: &str) -> usize {
                 }
             }
             b'<' => {
-                let left_pos = get_index(robot_x.wrapping_sub(1), robot_y);
+                let left_pos = get_index1(robot_x.wrapping_sub(1), robot_y);
 
                 match grid.get_unchecked(left_pos) {
                     b'.' => robot_x -= 1,
                     b'O' => {
                         for x in (0..robot_x - 1).rev() {
-                            let pos = get_index(x, robot_y);
+                            let pos = get_index1(x, robot_y);
 
                             match grid.get_unchecked(pos) {
                                 b'#' => break,
@@ -102,13 +100,13 @@ unsafe fn inner1(input: &str) -> usize {
                 }
             }
             b'>' => {
-                let right_pos = get_index(robot_x + 1, robot_y);
+                let right_pos = get_index1(robot_x + 1, robot_y);
 
                 match grid.get_unchecked(right_pos) {
                     b'.' => robot_x += 1,
                     b'O' => {
                         for x in (robot_x + 2)..WIDTH {
-                            let pos = get_index(x, robot_y);
+                            let pos = get_index1(x, robot_y);
 
                             match grid.get_unchecked(pos) {
                                 b'#' => break,
@@ -133,7 +131,7 @@ unsafe fn inner1(input: &str) -> usize {
     for y in 0..HEIGHT {
         let row_value = y * 100;
         for x in 0..WIDTH {
-            if *grid.get_unchecked(get_index(x, y)) == b'O' {
+            if *grid.get_unchecked(get_index1(x, y)) == b'O' {
                 solution += row_value + x;
             }
         }
@@ -142,18 +140,18 @@ unsafe fn inner1(input: &str) -> usize {
     solution
 }
 
-fn get_index2(x: usize, y: usize) -> usize {
-    y * WIDTH2 + x
-}
-
 pub fn part2(input: &str) -> usize {
     unsafe { inner2(input) }
+}
+
+fn get_index2(x: usize, y: usize) -> usize {
+    y * WIDTH2 + x
 }
 
 unsafe fn inner2(input: &str) -> usize {
     let moves = input[MOVES_START_INDEX..].as_bytes();
 
-    let mut grid = Vec::with_capacity(WIDTH2 * HEIGHT2);
+    let mut grid = Vec::with_capacity(WIDTH2 * HEIGHT);
     for &c in input[0..GRID_LENGTH].as_bytes() {
         match c {
             b'@' => {
@@ -319,7 +317,7 @@ unsafe fn inner2(input: &str) -> usize {
     }
 
     let mut solution = 0;
-    for y in 0..HEIGHT2 {
+    for y in 0..HEIGHT {
         let row_value = y * 100;
         for x in 0..WIDTH2 {
             if grid[get_index2(x, y)] == b'[' {
