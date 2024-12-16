@@ -180,12 +180,10 @@ unsafe fn inner2(input: &str) -> i32 {
             acc
         });
 
-    let robot_pos = grid
+    let mut robot_pos = grid
         .iter()
         .position(|&cell| cell == b'@')
         .unwrap_unchecked();
-    let mut robot_y = robot_pos / WIDTH2;
-    let mut robot_x = robot_pos % WIDTH2;
     *grid.get_unchecked_mut(robot_pos) = b'.';
 
     #[inline(always)]
@@ -193,72 +191,54 @@ unsafe fn inner2(input: &str) -> i32 {
         cell == b'[' || cell == b']'
     }
 
-    fn recursive_move_up(
-        grid: &[u8],
-        boxes_to_move: &mut FxHashSet<(usize, usize)>,
-        x: usize,
-        y: usize,
-    ) -> bool {
-        let mut curr_x = x;
-        if grid[get_index2(curr_x, y)] == b']' {
-            curr_x -= 1;
+    fn recursive_move_up(grid: &[u8], boxes_to_move: &mut FxHashSet<usize>, pos: usize) -> bool {
+        let mut pos = pos;
+        if grid[pos] == b']' {
+            pos -= 1;
         }
 
-        // assert_eq!(grid[y][curr_x], '[');
-
-        if grid[get_index2(curr_x, y - 1)] == b'#' || grid[get_index2(curr_x + 1, y - 1)] == b'#' {
+        if grid[pos - WIDTH2] == b'#' || grid[pos - WIDTH2 + 1] == b'#' {
             return false;
         }
 
-        if is_box(grid[get_index2(curr_x, y - 1)])
-            && !recursive_move_up(grid, boxes_to_move, curr_x, y - 1)
+        if is_box(grid[pos - WIDTH2]) && !recursive_move_up(grid, boxes_to_move, pos - WIDTH2) {
+            return false;
+        }
+
+        if grid[pos - WIDTH2 + 1] == b'['
+            && !recursive_move_up(grid, boxes_to_move, pos - WIDTH2 + 1)
         {
             return false;
         }
 
-        if grid[get_index2(curr_x + 1, y - 1)] == b'['
-            && !recursive_move_up(grid, boxes_to_move, curr_x + 1, y - 1)
-        {
-            return false;
-        }
-
-        boxes_to_move.insert((curr_x, y));
-        boxes_to_move.insert((curr_x + 1, y));
+        boxes_to_move.insert(pos);
+        boxes_to_move.insert(pos + 1);
 
         true
     }
 
-    fn recursive_move_down(
-        grid: &[u8],
-        boxes_to_move: &mut FxHashSet<(usize, usize)>,
-        x: usize,
-        y: usize,
-    ) -> bool {
-        let mut curr_x = x;
-        if grid[get_index2(curr_x, y)] == b']' {
-            curr_x -= 1;
+    fn recursive_move_down(grid: &[u8], boxes_to_move: &mut FxHashSet<usize>, pos: usize) -> bool {
+        let mut pos = pos;
+        if grid[pos] == b']' {
+            pos -= 1;
         }
 
-        // assert_eq!(grid[y][curr_x], '[');
-
-        if grid[get_index2(curr_x, y + 1)] == b'#' || grid[get_index2(curr_x + 1, y + 1)] == b'#' {
+        if grid[pos + WIDTH2] == b'#' || grid[pos + WIDTH2 + 1] == b'#' {
             return false;
         }
 
-        if is_box(grid[get_index2(curr_x, y + 1)])
-            && !recursive_move_down(grid, boxes_to_move, curr_x, y + 1)
+        if is_box(grid[pos + WIDTH2]) && !recursive_move_down(grid, boxes_to_move, pos + WIDTH2) {
+            return false;
+        }
+
+        if grid[pos + WIDTH2 + 1] == b'['
+            && !recursive_move_down(grid, boxes_to_move, pos + WIDTH2 + 1)
         {
             return false;
         }
 
-        if grid[get_index2(curr_x + 1, y + 1)] == b'['
-            && !recursive_move_down(grid, boxes_to_move, curr_x + 1, y + 1)
-        {
-            return false;
-        }
-
-        boxes_to_move.insert((curr_x, y));
-        boxes_to_move.insert((curr_x + 1, y));
+        boxes_to_move.insert(pos);
+        boxes_to_move.insert(pos + 1);
 
         true
     }
@@ -266,82 +246,82 @@ unsafe fn inner2(input: &str) -> i32 {
     for &movement in moves.iter() {
         match movement {
             b'^' => {
-                if grid[get_index2(robot_x, robot_y - 1)] == b'.' {
-                    robot_y -= 1;
-                } else if is_box(grid[get_index2(robot_x, robot_y - 1)]) {
+                if grid[robot_pos - WIDTH2] == b'.' {
+                    robot_pos -= WIDTH2;
+                } else if is_box(grid[robot_pos - WIDTH2]) {
                     let mut boxes_to_move =
                         FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_up(&grid, &mut boxes_to_move, robot_x, robot_y - 1) {
+                    if !recursive_move_up(&grid, &mut boxes_to_move, robot_pos - WIDTH2) {
                         continue;
                     }
 
                     let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                    moves.sort_unstable_by_key(|&(_, y)| y);
+                    moves.sort_unstable_by_key(|&pos| pos / WIDTH2);
 
-                    for &(x, y) in moves {
-                        grid[get_index2(x, y - 1)] = grid[get_index2(x, y)];
-                        grid[get_index2(x, y)] = b'.';
+                    for &pos in moves {
+                        grid[pos - WIDTH2] = grid[pos];
+                        grid[pos] = b'.';
                     }
-                    robot_y -= 1;
+                    robot_pos -= WIDTH2;
                 }
             }
             b'v' => {
-                if grid[get_index2(robot_x, robot_y + 1)] == b'.' {
-                    robot_y += 1;
-                } else if is_box(grid[get_index2(robot_x, robot_y + 1)]) {
+                if grid[robot_pos + WIDTH2] == b'.' {
+                    robot_pos += WIDTH2;
+                } else if is_box(grid[robot_pos + WIDTH2]) {
                     let mut boxes_to_move =
                         FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
 
-                    if !recursive_move_down(&grid, &mut boxes_to_move, robot_x, robot_y + 1) {
+                    if !recursive_move_down(&grid, &mut boxes_to_move, robot_pos + WIDTH2) {
                         continue;
                     }
 
                     let mut moves = boxes_to_move.iter().collect::<Vec<_>>();
-                    moves.sort_by_key(|&(_, y)| std::cmp::Reverse(y));
+                    moves.sort_unstable_by_key(|&pos| std::cmp::Reverse(pos / WIDTH2));
 
-                    for &(x, y) in moves {
-                        grid[get_index2(x, y + 1)] = grid[get_index2(x, y)];
-                        grid[get_index2(x, y)] = b'.';
+                    for &pos in moves {
+                        grid[pos + WIDTH2] = grid[pos];
+                        grid[pos] = b'.';
                     }
-                    robot_y += 1;
+                    robot_pos += WIDTH2;
                 }
             }
             b'<' => {
-                if grid[get_index2(robot_x - 1, robot_y)] == b'.' {
-                    robot_x -= 1;
-                } else if is_box(grid[get_index2(robot_x - 1, robot_y)]) {
-                    for x in (0..robot_x - 1).rev() {
-                        if grid[get_index2(x, robot_y)] == b'#' {
+                if grid[robot_pos - 1] == b'.' {
+                    robot_pos -= 1;
+                } else if is_box(grid[robot_pos - 1]) {
+                    let row_start = robot_pos - robot_pos % WIDTH2;
+                    for pos in (row_start..robot_pos - 1).rev() {
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[get_index2(x, robot_y)] == b'.' {
-                            for curr_x in x..robot_x {
-                                grid[get_index2(curr_x, robot_y)] =
-                                    grid[get_index2(curr_x + 1, robot_y)];
+                        if grid[pos] == b'.' {
+                            for curr_pos in pos..robot_pos {
+                                grid[curr_pos] = grid[curr_pos + 1];
                             }
-                            grid[get_index2(robot_x - 1, robot_y)] = b'.';
-                            robot_x -= 1;
+                            grid[robot_pos - 1] = b'.';
+                            robot_pos -= 1;
                             break;
                         }
                     }
                 }
             }
             b'>' => {
-                if grid[get_index2(robot_x + 1, robot_y)] == b'.' {
-                    robot_x += 1;
-                } else if is_box(grid[get_index2(robot_x + 1, robot_y)]) {
-                    for x in robot_x + 2..WIDTH2 {
-                        if grid[get_index2(x, robot_y)] == b'#' {
+                if grid[robot_pos + 1] == b'.' {
+                    robot_pos += 1;
+                } else if is_box(grid[robot_pos + 1]) {
+                    let row_end = robot_pos - robot_pos % WIDTH2 + WIDTH2;
+                    for pos in robot_pos + 2..row_end {
+                        if grid[pos] == b'#' {
                             break;
                         }
-                        if grid[get_index2(x, robot_y)] == b'.' {
-                            for curr_x in (robot_x + 1..=x).rev() {
-                                grid[get_index2(curr_x, robot_y)] =
-                                    grid[get_index2(curr_x - 1, robot_y)];
+                        if grid[pos] == b'.' {
+                            for curr_pos in (robot_pos + 1..=pos).rev() {
+                                grid[curr_pos] = grid[curr_pos - 1];
                             }
-                            grid[get_index2(robot_x + 1, robot_y)] = b'.';
-                            robot_x += 1;
+                            grid[robot_pos + 1] = b'.';
+                            robot_pos += 1;
                             break;
                         }
                     }
