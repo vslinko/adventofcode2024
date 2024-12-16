@@ -131,9 +131,10 @@ unsafe fn inner1(input: &str) -> usize {
 
     let mut solution = 0;
     for y in 0..HEIGHT {
+        let row_value = y * 100;
         for x in 0..WIDTH {
             if *grid.get_unchecked(get_index(x, y)) == b'O' {
-                solution += y * 100 + x;
+                solution += row_value + x;
             }
         }
     }
@@ -148,6 +149,7 @@ fn get_index2(x: usize, y: usize) -> usize {
 pub fn part2(input: &str) -> usize {
     unsafe { inner2(input) }
 }
+
 unsafe fn inner2(input: &str) -> usize {
     let moves = input[MOVES_START_INDEX..].as_bytes();
 
@@ -318,9 +320,10 @@ unsafe fn inner2(input: &str) -> usize {
 
     let mut solution = 0;
     for y in 0..HEIGHT2 {
+        let row_value = y * 100;
         for x in 0..WIDTH2 {
             if grid[get_index2(x, y)] == b'[' {
-                solution += y * 100 + x;
+                solution += row_value + x;
             }
         }
     }
