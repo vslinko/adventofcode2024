@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashSet};
+use std::collections::{HashMap, VecDeque};
 
 const WIDTH: usize = 141;
 const HEIGHT: usize = 141;
@@ -18,7 +19,7 @@ struct Node {
     direction: Direction,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Hash, Clone)]
 enum Direction {
     North,
     South,
@@ -95,7 +96,7 @@ unsafe fn inner1(input: &str) -> usize {
         for (next_index, next_dir, next_score) in
             get_neighbors_with_direction(current.index, current.direction)
         {
-            if input[next_index] == b'#' {
+            if *input.get_unchecked(next_index) == b'#' {
                 continue;
             }
 
@@ -116,12 +117,237 @@ unsafe fn inner1(input: &str) -> usize {
     usize::MAX
 }
 
-pub fn part2(input: &str) -> i32 {
+#[derive(Clone)]
+struct Point {
+    x: i32,
+    y: i32,
+    direction: Direction,
+}
+
+impl Point {
+    fn new(x: i32, y: i32, direction: Direction) -> Self {
+        Self { x, y, direction }
+    }
+
+    fn hash(&self) -> String {
+        let direction = match self.direction {
+            Direction::North => 'N',
+            Direction::South => 'S',
+            Direction::East => 'E',
+            Direction::West => 'W',
+        };
+
+        format!("{},{},{}", self.x, self.y, direction)
+    }
+}
+
+struct DirectionMove {
+    direction: Direction,
+    dx: i32,
+    dy: i32,
+    score: i32,
+}
+
+fn get_directions() -> HashMap<Direction, Vec<DirectionMove>> {
+    let mut directions = HashMap::new();
+
+    directions.insert(
+        Direction::East,
+        vec![
+            DirectionMove {
+                direction: Direction::East,
+                dx: 1,
+                dy: 0,
+                score: 1,
+            },
+            DirectionMove {
+                direction: Direction::North,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+            DirectionMove {
+                direction: Direction::South,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+        ],
+    );
+
+    directions.insert(
+        Direction::North,
+        vec![
+            DirectionMove {
+                direction: Direction::North,
+                dx: 0,
+                dy: -1,
+                score: 1,
+            },
+            DirectionMove {
+                direction: Direction::West,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+            DirectionMove {
+                direction: Direction::East,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+        ],
+    );
+
+    directions.insert(
+        Direction::West,
+        vec![
+            DirectionMove {
+                direction: Direction::West,
+                dx: -1,
+                dy: 0,
+                score: 1,
+            },
+            DirectionMove {
+                direction: Direction::North,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+            DirectionMove {
+                direction: Direction::South,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+        ],
+    );
+
+    directions.insert(
+        Direction::South,
+        vec![
+            DirectionMove {
+                direction: Direction::South,
+                dx: 0,
+                dy: 1,
+                score: 1,
+            },
+            DirectionMove {
+                direction: Direction::West,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+            DirectionMove {
+                direction: Direction::East,
+                dx: 0,
+                dy: 0,
+                score: 1000,
+            },
+        ],
+    );
+
+    directions
+}
+
+fn find_all_shortest_paths(
+    maze: &Vec<Vec<char>>,
+    start_x: i32,
+    start_y: i32,
+    start_direction: Direction,
+    end_x: i32,
+    end_y: i32,
+) -> Vec<(Vec<Point>, i32)> {
+    let start = Point::new(start_x, start_y, start_direction);
+    let directions = get_directions();
+    let mut all_paths = Vec::new();
+    let mut queue = VecDeque::new();
+    let mut scores = HashMap::new();
+
+    queue.push_back((vec![start.clone()], 0));
+    scores.insert(start.hash(), 0);
+
+    while let Some((current_path, score)) = queue.pop_front() {
+        let current = current_path.last().unwrap();
+
+        if current.x == end_x && current.y == end_y {
+            all_paths.push((current_path, score));
+            continue;
+        }
+
+        for d in directions.get(&current.direction).unwrap() {
+            let next_x = current.x + d.dx;
+            let next_y = current.y + d.dy;
+
+            if maze[next_y as usize][next_x as usize] != '#' {
+                let next_point = Point::new(next_x, next_y, d.direction.clone());
+                let new_distance = score + d.score;
+
+                let current_score = scores.get(&next_point.hash()).unwrap_or(&i32::MAX);
+                if new_distance <= *current_score {
+                    scores.insert(next_point.hash(), new_distance);
+                    let mut new_path = current_path.clone();
+                    new_path.push(next_point);
+                    queue.push_back((new_path, new_distance));
+                }
+            }
+        }
+    }
+
+    let min_score = all_paths.iter().map(|(_, score)| *score).min().unwrap_or(0);
+
+    all_paths
+        .into_iter()
+        .filter(|(_, score)| *score == min_score)
+        .collect()
+}
+
+pub fn part2(input: &str) -> usize {
     unsafe { inner2(input) }
 }
 
-unsafe fn inner2(input: &str) -> i32 {
-    123
+unsafe fn inner2(input: &str) -> usize {
+    let lines: Vec<Vec<char>> = input
+        .trim()
+        .lines()
+        .map(|line| line.trim().chars().collect())
+        .collect();
+
+    assert!(!lines.is_empty());
+
+    let m = lines[0].len();
+    let n = lines.len();
+
+    let start_x = 1;
+    let start_y = (n - 2) as i32;
+    let end_x = (m - 2) as i32;
+    let end_y = 1;
+
+    assert_eq!(lines[start_y as usize][start_x], 'S');
+    assert_eq!(lines[end_y as usize][end_x as usize], 'E');
+
+    let mut lines = lines;
+    lines[start_y as usize][start_x] = '.';
+    lines[end_y as usize][end_x as usize] = '.';
+
+    let shortest_paths = find_all_shortest_paths(
+        &lines,
+        start_x as i32,
+        start_y,
+        Direction::East,
+        end_x,
+        end_y,
+    );
+
+    let mut unique_cells = HashSet::new();
+
+    for (path, _) in shortest_paths {
+        for point in path {
+            unique_cells.insert(format!("{},{}", point.x, point.y));
+        }
+    }
+
+    unique_cells.len()
 }
 
 #[cfg(test)]
