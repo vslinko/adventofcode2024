@@ -176,7 +176,7 @@ unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score:
     let mut scores = [usize::MAX; LINE_LENGTH * HEIGHT * 4];
 
     queue.push_back((
-        smallvec::SmallVec::<[usize; 64]>::from_slice(&[START_INDEX]),
+        smallvec::SmallVec::<[usize; 8]>::from_slice(&[START_INDEX]),
         Direction::East,
         0,
     ));
