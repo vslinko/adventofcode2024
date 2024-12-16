@@ -147,11 +147,11 @@ fn get_index2(x: usize, y: usize) -> usize {
     y * WIDTH2 + x
 }
 
-pub fn part2(input: &str) -> i32 {
+pub fn part2(input: &str) -> usize {
     unsafe { inner2(input) }
 }
 
-unsafe fn inner2(input: &str) -> i32 {
+unsafe fn inner2(input: &str) -> usize {
     let moves = input[GRID_LENGTH + 1..].as_bytes();
     let mut grid = input[0..GRID_LENGTH - 1]
         .as_bytes()
@@ -336,7 +336,7 @@ unsafe fn inner2(input: &str) -> i32 {
     for y in 0..HEIGHT2 {
         for x in 0..WIDTH2 {
             if grid[get_index2(x, y)] == b'[' {
-                solution += (y * 100 + x) as i32;
+                solution += y * 100 + x;
             }
         }
     }
