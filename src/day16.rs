@@ -22,6 +22,12 @@ enum Direction {
     West,
 }
 
+struct NextDirection {
+    delta: isize,
+    direction: Direction,
+    score: usize,
+}
+
 #[derive(Eq, PartialEq)]
 struct Node {
     score: usize,
@@ -41,33 +47,80 @@ impl PartialOrd for Node {
     }
 }
 
-fn get_neighbors_with_direction1(
-    index: usize,
-    current_dir: Direction,
-) -> [(usize, Direction, usize); 3] {
-    match current_dir {
-        Direction::East => [
-            (index + 1, Direction::East, 1),
-            (index - LINE_LENGTH, Direction::North, 1001),
-            (index + LINE_LENGTH, Direction::South, 1001),
-        ],
-        Direction::West => [
-            (index - 1, Direction::West, 1),
-            (index - LINE_LENGTH, Direction::North, 1001),
-            (index + LINE_LENGTH, Direction::South, 1001),
-        ],
-        Direction::North => [
-            (index - LINE_LENGTH, Direction::North, 1),
-            (index - 1, Direction::West, 1001),
-            (index + 1, Direction::East, 1001),
-        ],
-        Direction::South => [
-            (index + LINE_LENGTH, Direction::South, 1),
-            (index - 1, Direction::West, 1001),
-            (index + 1, Direction::East, 1001),
-        ],
-    }
-}
+const NEXT_DIRECTIONS1: [[NextDirection; 3]; 4] = [
+    // north
+    [
+        NextDirection {
+            delta: LINE_LENGTH as isize * -1,
+            direction: Direction::North,
+            score: 1,
+        },
+        NextDirection {
+            delta: -1,
+            direction: Direction::West,
+            score: 1001,
+        },
+        NextDirection {
+            delta: 1,
+            direction: Direction::East,
+            score: 1001,
+        },
+    ],
+    // south
+    [
+        NextDirection {
+            delta: LINE_LENGTH as isize,
+            direction: Direction::South,
+            score: 1,
+        },
+        NextDirection {
+            delta: -1,
+            direction: Direction::West,
+            score: 1001,
+        },
+        NextDirection {
+            delta: 1,
+            direction: Direction::East,
+            score: 1001,
+        },
+    ],
+    // east
+    [
+        NextDirection {
+            delta: 1,
+            direction: Direction::East,
+            score: 1,
+        },
+        NextDirection {
+            delta: LINE_LENGTH as isize * -1,
+            direction: Direction::North,
+            score: 1001,
+        },
+        NextDirection {
+            delta: LINE_LENGTH as isize,
+            direction: Direction::South,
+            score: 1001,
+        },
+    ],
+    // west
+    [
+        NextDirection {
+            delta: -1,
+            direction: Direction::West,
+            score: 1,
+        },
+        NextDirection {
+            delta: LINE_LENGTH as isize * -1,
+            direction: Direction::North,
+            score: 1001,
+        },
+        NextDirection {
+            delta: LINE_LENGTH as isize,
+            direction: Direction::South,
+            score: 1001,
+        },
+    ],
+];
 
 unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
     let mut open_set = BinaryHeap::with_capacity(1000);
@@ -91,14 +144,14 @@ unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
             continue;
         }
 
-        for (next_index, next_dir, next_score) in
-            get_neighbors_with_direction1(current.index, current.direction)
-        {
+        for dir in NEXT_DIRECTIONS1[current.direction as usize].iter() {
+            let next_index = (current.index as isize + dir.delta) as usize;
+
             if *input.get_unchecked(next_index) == b'#' || closed_set.contains(&next_index) {
                 continue;
             }
 
-            let new_score = current.score + next_score;
+            let new_score = current.score + dir.score;
 
             if new_score < best_scores[next_index] {
                 best_scores[next_index] = new_score;
@@ -106,7 +159,7 @@ unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
                 let next_node = Node {
                     score: new_score,
                     index: next_index,
-                    direction: next_dir,
+                    direction: dir.direction,
                 };
 
                 open_set.push(next_node);
@@ -148,26 +201,20 @@ struct QueueItem {
     score: usize,
 }
 
-struct NextDirection2 {
-    delta: isize,
-    direction: Direction,
-    score: usize,
-}
-
-const NEXT_DIRECTIONS: [[NextDirection2; 3]; 4] = [
+const NEXT_DIRECTIONS2: [[NextDirection; 3]; 4] = [
     // north
     [
-        NextDirection2 {
+        NextDirection {
             delta: LINE_LENGTH as isize * -1,
             direction: Direction::North,
             score: 1,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::West,
             score: 1000,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::East,
             score: 1000,
@@ -175,17 +222,17 @@ const NEXT_DIRECTIONS: [[NextDirection2; 3]; 4] = [
     ],
     // south
     [
-        NextDirection2 {
+        NextDirection {
             delta: LINE_LENGTH as isize,
             direction: Direction::South,
             score: 1,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::West,
             score: 1000,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::East,
             score: 1000,
@@ -193,17 +240,17 @@ const NEXT_DIRECTIONS: [[NextDirection2; 3]; 4] = [
     ],
     // east
     [
-        NextDirection2 {
+        NextDirection {
             delta: 1,
             direction: Direction::East,
             score: 1,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::North,
             score: 1000,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::South,
             score: 1000,
@@ -211,17 +258,17 @@ const NEXT_DIRECTIONS: [[NextDirection2; 3]; 4] = [
     ],
     // west
     [
-        NextDirection2 {
+        NextDirection {
             delta: -1,
             direction: Direction::West,
             score: 1,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::North,
             score: 1000,
         },
-        NextDirection2 {
+        NextDirection {
             delta: 0,
             direction: Direction::South,
             score: 1000,
@@ -249,7 +296,7 @@ unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score:
             continue;
         }
 
-        for dir in NEXT_DIRECTIONS[item.direction as usize].iter() {
+        for dir in NEXT_DIRECTIONS2[item.direction as usize].iter() {
             let next_index = (current_index as isize + dir.delta) as usize;
             let next_score = item.score + dir.score;
 
