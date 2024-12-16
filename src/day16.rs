@@ -2,8 +2,6 @@ use dary_heap::BinaryHeap;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 
-use rustc_hash::{FxBuildHasher, FxHashSet};
-
 const WIDTH: usize = 141;
 const HEIGHT: usize = 141;
 const LINE_LENGTH: usize = WIDTH + 1;
@@ -124,7 +122,7 @@ const NEXT_DIRECTIONS1: [[NextDirection; 3]; 4] = [
 
 unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
     let mut open_set = BinaryHeap::with_capacity(1000);
-    let mut closed_set = FxHashSet::with_capacity_and_hasher(1000, FxBuildHasher::default());
+    let mut closed_set = [false; LINE_LENGTH * HEIGHT];
     let mut best_scores = [usize::MAX; LINE_LENGTH * HEIGHT];
 
     let start_node = Node {
@@ -147,7 +145,7 @@ unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
         for dir in NEXT_DIRECTIONS1[current.direction as usize].iter() {
             let next_index = (current.index as isize + dir.delta) as usize;
 
-            if *input.get_unchecked(next_index) == b'#' || closed_set.contains(&next_index) {
+            if *input.get_unchecked(next_index) == b'#' || closed_set[next_index] {
                 continue;
             }
 
@@ -166,7 +164,7 @@ unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
             }
         }
 
-        closed_set.insert(current.index);
+        closed_set[current.index] = true
     }
 
     usize::MAX
