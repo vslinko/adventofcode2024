@@ -1,7 +1,8 @@
 const WIDTH: usize = 50;
 const HEIGHT: usize = 50;
 const LINE_WIDTH: usize = WIDTH + 1;
-const GRID_LENGTH: usize = HEIGHT * LINE_WIDTH;
+const GRID_LENGTH: usize = HEIGHT * LINE_WIDTH - 1;
+const MOVES_START_INDEX: usize = GRID_LENGTH + 2;
 
 const WIDTH2: usize = 100;
 const HEIGHT2: usize = 50;
@@ -15,8 +16,8 @@ fn get_index(x: usize, y: usize) -> usize {
 }
 
 unsafe fn inner1(input: &str) -> usize {
-    let mut grid = input[0..GRID_LENGTH - 1].as_bytes().to_vec();
-    let moves = input[GRID_LENGTH + 1..].as_bytes();
+    let mut grid = input[0..GRID_LENGTH].as_bytes().to_vec();
+    let moves = input[MOVES_START_INDEX..].as_bytes();
 
     let robot_pos = grid
         .iter()
@@ -124,8 +125,7 @@ unsafe fn inner1(input: &str) -> usize {
                     _ => {}
                 }
             }
-            b'\n' => {}
-            _ => panic!("Unknown move: {}", movement),
+            _ => {}
         }
     }
 
@@ -150,8 +150,8 @@ pub fn part2(input: &str) -> usize {
 }
 
 unsafe fn inner2(input: &str) -> usize {
-    let moves = input[GRID_LENGTH + 1..].as_bytes();
-    let mut grid = input[0..GRID_LENGTH - 1]
+    let moves = input[MOVES_START_INDEX..].as_bytes();
+    let mut grid = input[0..GRID_LENGTH]
         .as_bytes()
         .iter()
         .fold(vec![], |mut acc, c| {
