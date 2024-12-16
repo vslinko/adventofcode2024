@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashSet};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BinaryHeap, VecDeque};
+
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 const WIDTH: usize = 141;
 const HEIGHT: usize = 141;
@@ -69,7 +70,7 @@ fn get_neighbors_with_direction1(
 
 unsafe fn find_fastest_path_score(input: &[u8]) -> usize {
     let mut open_set = BinaryHeap::new();
-    let mut closed_set = HashSet::new();
+    let mut closed_set = FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default());
 
     let start_node = Node {
         score: 0,
@@ -148,9 +149,9 @@ fn get_neighbors_with_direction2(point: &(usize, Direction)) -> [(usize, Directi
 
 unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
     let start = (START_INDEX, Direction::East);
-    let mut unique_cells = HashSet::new();
+    let mut unique_cells = FxHashSet::with_capacity_and_hasher(100, FxBuildHasher::default());
     let mut queue = VecDeque::new();
-    let mut scores = HashMap::new();
+    let mut scores = FxHashMap::with_capacity_and_hasher(100, FxBuildHasher::default());
 
     queue.push_back((vec![start.clone()], 0));
     scores.insert(start, 0_usize);
