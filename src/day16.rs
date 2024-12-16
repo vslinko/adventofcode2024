@@ -129,34 +129,6 @@ unsafe fn inner1(input: &str) -> usize {
     find_fastest_path_score(input)
 }
 
-fn get_neighbors_with_direction2(
-    index: usize,
-    direction: Direction,
-) -> [(usize, Direction, usize); 3] {
-    match direction {
-        Direction::East => [
-            (index + 1, Direction::East, 1),
-            (index, Direction::North, 1000),
-            (index, Direction::South, 1000),
-        ],
-        Direction::West => [
-            (index - 1, Direction::West, 1),
-            (index, Direction::North, 1000),
-            (index, Direction::South, 1000),
-        ],
-        Direction::North => [
-            (index - LINE_LENGTH, Direction::North, 1),
-            (index, Direction::West, 1000),
-            (index, Direction::East, 1000),
-        ],
-        Direction::South => [
-            (index + LINE_LENGTH, Direction::South, 1),
-            (index, Direction::West, 1000),
-            (index, Direction::East, 1000),
-        ],
-    }
-}
-
 fn get_scores_index(index: usize, direction: Direction) -> usize {
     const ROW_SIZE1: usize = LINE_LENGTH * HEIGHT;
     const ROW_SIZE2: usize = LINE_LENGTH * HEIGHT * 2;
@@ -175,6 +147,87 @@ struct QueueItem {
     direction: Direction,
     score: usize,
 }
+
+struct NextDirection2 {
+    delta: isize,
+    direction: Direction,
+    score: usize,
+}
+
+const NEXT_DIRECTIONS: [[NextDirection2; 3]; 4] = [
+    // north
+    [
+        NextDirection2 {
+            delta: LINE_LENGTH as isize * -1,
+            direction: Direction::North,
+            score: 1,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::West,
+            score: 1000,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::East,
+            score: 1000,
+        },
+    ],
+    // south
+    [
+        NextDirection2 {
+            delta: LINE_LENGTH as isize,
+            direction: Direction::South,
+            score: 1,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::West,
+            score: 1000,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::East,
+            score: 1000,
+        },
+    ],
+    // east
+    [
+        NextDirection2 {
+            delta: 1,
+            direction: Direction::East,
+            score: 1,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::North,
+            score: 1000,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::South,
+            score: 1000,
+        },
+    ],
+    // west
+    [
+        NextDirection2 {
+            delta: -1,
+            direction: Direction::West,
+            score: 1,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::North,
+            score: 1000,
+        },
+        NextDirection2 {
+            delta: 0,
+            direction: Direction::South,
+            score: 1000,
+        },
+    ],
+];
 
 unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score: usize) -> usize {
     let mut unique_cells = Vec::with_capacity((LINE_LENGTH * HEIGHT) / 2);
@@ -196,26 +249,26 @@ unsafe fn find_unique_cells_count_of_all_fastest_pathes(input: &[u8], max_score:
             continue;
         }
 
-        for (next_index, next_direction, next_score) in
-            get_neighbors_with_direction2(current_index, item.direction)
-        {
-            if *input.get_unchecked(next_index) == b'#' || item.score + next_score > max_score {
+        for dir in NEXT_DIRECTIONS[item.direction as usize].iter() {
+            let next_index = (current_index as isize + dir.delta) as usize;
+            let next_score = item.score + dir.score;
+
+            if *input.get_unchecked(next_index) == b'#' || next_score > max_score {
                 continue;
             }
 
-            let new_score = item.score + next_score;
-            let scores_index = get_scores_index(next_index, next_direction);
+            let scores_index = get_scores_index(next_index, dir.direction);
             let current_score = scores[scores_index];
 
-            if new_score <= current_score {
-                scores[scores_index] = new_score;
+            if next_score <= current_score {
+                scores[scores_index] = next_score;
 
-                let mut new_path = item.path.clone();
-                new_path.push(next_index);
+                let mut next_path = item.path.clone();
+                next_path.push(next_index);
                 queue.push_back(QueueItem {
-                    path: new_path,
-                    direction: next_direction,
-                    score: new_score,
+                    path: next_path,
+                    direction: dir.direction,
+                    score: next_score,
                 });
             }
         }
