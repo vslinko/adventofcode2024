@@ -189,9 +189,9 @@ macro_rules! make_eval {
     ($name:ident; $($instruction:expr, $operand:expr),*; $last:expr) => {
         unsafe fn $name(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
             macro_rules! combo {
-                ($a:expr) => {{
-                    match ops[$a] {
-                        0..=3 => ops[$a],
+                ($b:expr) => {{
+                    match ops.get_unchecked($b) {
+                        0..=3 => *ops.get_unchecked($b),
                         4 => a,
                         5 => b,
                         6 => c,
@@ -202,12 +202,12 @@ macro_rules! make_eval {
 
             macro_rules! make_step {
                 ($a:expr, $b:expr) => {
-                    match ops[$a] {
+                    match ops.get_unchecked($a) {
                         0 => {
                             a /= 2_i64.pow(combo!($b) as u32);
                         }
                         1 => {
-                            b ^= ops[$b];
+                            b ^= ops.get_unchecked($b);
                         }
                         2 => {
                             b = combo!($b) % 8;
@@ -258,12 +258,13 @@ unsafe fn find(
     }
 
     let a8 = 8 * a;
+    let expected = *ops.get_unchecked(ops.len() - 1 - depth);
 
     macro_rules! check {
         ($($e:expr)?) => {
             let a = a8$( + $e )?;
 
-            if eval_fn(a, b, c, ops) == ops[ops.len() - 1 - depth] {
+            if eval_fn(a, b, c, ops) == expected {
                 let found = find(eval_fn, ops, a, b, c, depth + 1);
 
                 if found != 0 {
