@@ -6,7 +6,7 @@ macro_rules! read_unsigned {
         loop {
             match $input.get_unchecked($i) {
                 b'0'..=b'9' => {
-                    num = num * 10 + ($input.get_unchecked($i) - b'0') as i64;
+                    num = num * 10 + ($input.get_unchecked($i) - b'0') as u64;
                     $i += 1;
                 }
                 _ => {
@@ -18,7 +18,7 @@ macro_rules! read_unsigned {
     }};
 }
 
-unsafe fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
+unsafe fn eval_programm(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
     let mut i = 0;
     let mut output = String::new();
 
@@ -39,7 +39,7 @@ unsafe fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> Stri
 
         match ops.get_unchecked(i) {
             0 => {
-                a /= 2_i64.pow(combo!(i + 1) as u32);
+                a /= 2_u64.pow(combo!(i + 1) as u32);
             }
             1 => {
                 b ^= ops.get_unchecked(i + 1);
@@ -69,10 +69,10 @@ unsafe fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> Stri
                 });
             }
             6 => {
-                b = a / 2_i64.pow(combo!(i + 1) as u32);
+                b = a / 2_u64.pow(combo!(i + 1) as u32);
             }
             7 => {
-                c = a / 2_i64.pow(combo!(i + 1) as u32);
+                c = a / 2_u64.pow(combo!(i + 1) as u32);
             }
             _ => {}
         }
@@ -131,7 +131,7 @@ pub fn part2(input: &str) -> impl Display {
     unsafe { inner2(input) }
 }
 
-unsafe fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
+unsafe fn eval_programm_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> u64 {
     let mut i = 0;
 
     macro_rules! combo {
@@ -151,7 +151,7 @@ unsafe fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -
 
         match ops.get_unchecked(i) {
             0 => {
-                a /= 2_i64.pow(combo!(i + 1) as u32);
+                a /= 2_u64.pow(combo!(i + 1) as u32);
             }
             1 => {
                 b ^= *ops.get_unchecked(i + 1);
@@ -171,10 +171,10 @@ unsafe fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -
                 return combo!(i + 1) % 8;
             }
             6 => {
-                b = a / 2_i64.pow(combo!(i + 1) as u32);
+                b = a / 2_u64.pow(combo!(i + 1) as u32);
             }
             7 => {
-                c = a / 2_i64.pow(combo!(i + 1) as u32);
+                c = a / 2_u64.pow(combo!(i + 1) as u32);
             }
             _ => {}
         }
@@ -182,12 +182,12 @@ unsafe fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -
         i = next_i;
     }
 
-    i64::MAX
+    u64::MAX
 }
 
 macro_rules! make_eval {
     ($name:ident; $($instruction:expr, $operand:expr),*; $last:expr) => {
-        unsafe fn $name(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
+        unsafe fn $name(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> u64 {
             macro_rules! combo {
                 ($b:expr) => {{
                     match ops.get_unchecked($b) {
@@ -204,7 +204,7 @@ macro_rules! make_eval {
                 ($a:expr, $b:expr) => {
                     match ops.get_unchecked($a) {
                         0 => {
-                            a /= 2_i64.pow(combo!($b) as u32);
+                            a /= 2_u64.pow(combo!($b) as u32);
                         }
                         1 => {
                             b ^= ops.get_unchecked($b);
@@ -216,10 +216,10 @@ macro_rules! make_eval {
                             b ^= c;
                         }
                         6 => {
-                            b = a / 2_i64.pow(combo!($b) as u32);
+                            b = a / 2_u64.pow(combo!($b) as u32);
                         }
                         7 => {
-                            c = a / 2_i64.pow(combo!($b) as u32);
+                            c = a / 2_u64.pow(combo!($b) as u32);
                         }
                         _ => {}
                     }
@@ -246,13 +246,13 @@ make_eval!(eval8; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15; 17);
 make_eval!(eval9; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17; 19);
 
 unsafe fn find(
-    eval_fn: unsafe fn(i64, i64, i64, &[i64]) -> i64,
-    ops: &[i64],
-    a: i64,
-    b: i64,
-    c: i64,
+    eval_fn: unsafe fn(u64, u64, u64, &[u64]) -> u64,
+    ops: &[u64],
+    a: u64,
+    b: u64,
+    c: u64,
     depth: usize,
-) -> i64 {
+) -> u64 {
     if depth == ops.len() {
         return a;
     }
@@ -286,7 +286,7 @@ unsafe fn find(
     0
 }
 
-unsafe fn inner2(input: &str) -> i64 {
+unsafe fn inner2(input: &str) -> u64 {
     let input = input.as_bytes();
     let mut i = 12; // skip "Register A: "
     loop {
