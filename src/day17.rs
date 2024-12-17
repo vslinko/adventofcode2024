@@ -18,14 +18,14 @@ macro_rules! read_unsigned {
     }};
 }
 
-fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
+unsafe fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
     let mut i = 0;
     let mut output = String::new();
 
     macro_rules! combo {
         ($i:expr) => {{
-            match ops[$i] {
-                0..=3 => ops[$i],
+            match ops.get_unchecked($i) {
+                0..=3 => *ops.get_unchecked($i),
                 4 => a,
                 5 => b,
                 6 => c,
@@ -37,19 +37,19 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
     while i < ops.len() {
         let mut next_i = i + 2;
 
-        match ops[i] {
+        match ops.get_unchecked(i) {
             0 => {
                 a /= 2_i64.pow(combo!(i + 1) as u32);
             }
             1 => {
-                b ^= ops[i + 1];
+                b ^= ops.get_unchecked(i + 1);
             }
             2 => {
                 b = combo!(i + 1) % 8;
             }
             3 => {
                 if a != 0 {
-                    next_i = ops[i + 1] as usize;
+                    next_i = *ops.get_unchecked(i + 1) as usize;
                 }
             }
             4 => {
@@ -131,13 +131,13 @@ pub fn part2(input: &str) -> impl Display {
     unsafe { inner2(input) }
 }
 
-fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
+unsafe fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
     let mut i = 0;
 
     macro_rules! combo {
         ($i:expr) => {{
-            match ops[$i] {
-                0..=3 => ops[$i],
+            match ops.get_unchecked($i) {
+                0..=3 => *ops.get_unchecked($i),
                 4 => a,
                 5 => b,
                 6 => c,
@@ -149,19 +149,19 @@ fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
     while i < ops.len() {
         let mut next_i = i + 2;
 
-        match ops[i] {
+        match ops.get_unchecked(i) {
             0 => {
                 a /= 2_i64.pow(combo!(i + 1) as u32);
             }
             1 => {
-                b ^= ops[i + 1];
+                b ^= *ops.get_unchecked(i + 1);
             }
             2 => {
                 b = combo!(i + 1) % 8;
             }
             3 => {
                 if a != 0 {
-                    next_i = ops[i + 1] as usize;
+                    next_i = *ops.get_unchecked(i + 1) as usize;
                 }
             }
             4 => {
@@ -333,7 +333,7 @@ unsafe fn inner2(input: &str) -> i64 {
 
     let mut ops_before_ouput = 0;
     for i in (0..ops.len()).step_by(2) {
-        if ops[i] == 5 {
+        if *ops.get_unchecked(i) == 5 {
             ops_before_ouput = i / 2;
             break;
         }
