@@ -30,6 +30,56 @@ macro_rules! combo {
     }};
 }
 
+macro_rules! adv {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $a /= 2_u64.pow(combo!($operand, $a, $b, $c) as u32)
+    };
+}
+
+macro_rules! bxl {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $b ^= $operand
+    };
+}
+
+macro_rules! bst {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $b = combo!($operand, $a, $b, $c) % 8
+    };
+}
+
+macro_rules! jnz {
+    ($next_i:expr, $operand:expr, $a:expr, $b:expr, $c:expr) => {
+        if $a != 0 {
+            $next_i = $operand as usize;
+        }
+    };
+}
+
+macro_rules! bxc {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $b ^= $c
+    };
+}
+
+macro_rules! out {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        combo!($operand, $a, $b, $c) % 8
+    };
+}
+
+macro_rules! bdv {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $b = $a / 2_u64.pow(combo!($operand, $a, $b, $c) as u32)
+    };
+}
+
+macro_rules! cdv {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {
+        $c = $a / 2_u64.pow(combo!($operand, $a, $b, $c) as u32)
+    };
+}
+
 unsafe fn eval_full(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
     let mut i = 0;
     let mut output = String::new();
@@ -38,25 +88,13 @@ unsafe fn eval_full(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
         let mut next_i = i + 2;
 
         match ops.get_unchecked(i) {
-            0 => {
-                a /= 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
-            1 => {
-                b ^= ops.get_unchecked(i + 1);
-            }
-            2 => {
-                b = combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
-            }
-            3 => {
-                if a != 0 {
-                    next_i = *ops.get_unchecked(i + 1) as usize;
-                }
-            }
-            4 => {
-                b ^= c;
-            }
+            0 => adv!(ops.get_unchecked(i + 1), a, b, c),
+            1 => bxl!(ops.get_unchecked(i + 1), a, b, c),
+            2 => bst!(ops.get_unchecked(i + 1), a, b, c),
+            3 => jnz!(next_i, *ops.get_unchecked(i + 1), a, b, c),
+            4 => bxc!(ops.get_unchecked(i + 1), a, b, c),
             5 => {
-                output.push_str(match combo!(ops.get_unchecked(i + 1), a, b, c) % 8 {
+                output.push_str(match out!(ops.get_unchecked(i + 1), a, b, c) {
                     0 => "0,",
                     1 => "1,",
                     2 => "2,",
@@ -68,12 +106,8 @@ unsafe fn eval_full(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
                     _ => "_,",
                 });
             }
-            6 => {
-                b = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
-            7 => {
-                c = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
+            6 => bdv!(ops.get_unchecked(i + 1), a, b, c),
+            7 => cdv!(ops.get_unchecked(i + 1), a, b, c),
             _ => {}
         }
 
@@ -138,32 +172,14 @@ unsafe fn eval_return_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> 
         let mut next_i = i + 2;
 
         match ops.get_unchecked(i) {
-            0 => {
-                a /= 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
-            1 => {
-                b ^= *ops.get_unchecked(i + 1);
-            }
-            2 => {
-                b = combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
-            }
-            3 => {
-                if a != 0 {
-                    next_i = *ops.get_unchecked(i + 1) as usize;
-                }
-            }
-            4 => {
-                b ^= c;
-            }
-            5 => {
-                return combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
-            }
-            6 => {
-                b = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
-            7 => {
-                c = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
-            }
+            0 => adv!(ops.get_unchecked(i + 1), a, b, c),
+            1 => bxl!(ops.get_unchecked(i + 1), a, b, c),
+            2 => bst!(ops.get_unchecked(i + 1), a, b, c),
+            3 => jnz!(next_i, *ops.get_unchecked(i + 1), a, b, c),
+            4 => bxc!(ops.get_unchecked(i + 1), a, b, c),
+            5 => return out!(ops.get_unchecked(i + 1), a, b, c),
+            6 => bdv!(ops.get_unchecked(i + 1), a, b, c),
+            7 => cdv!(ops.get_unchecked(i + 1), a, b, c),
             _ => {}
         }
 
@@ -179,24 +195,12 @@ macro_rules! make_eval {
             macro_rules! make_step {
                 ($a:expr, $b:expr) => {
                     match ops.get_unchecked($a) {
-                        0 => {
-                            a /= 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
-                        }
-                        1 => {
-                            b ^= ops.get_unchecked($b);
-                        }
-                        2 => {
-                            b = combo!(ops.get_unchecked($b), a, b, c) % 8;
-                        }
-                        4 => {
-                            b ^= c;
-                        }
-                        6 => {
-                            b = a / 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
-                        }
-                        7 => {
-                            c = a / 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
-                        }
+                        0 => adv!(ops.get_unchecked($b), a, b, c),
+                        1 => bxl!(ops.get_unchecked($b), a, b, c),
+                        2 => bst!(ops.get_unchecked($b), a, b, c),
+                        4 => bxc!(ops.get_unchecked($b), a, b, c),
+                        6 => bdv!(ops.get_unchecked($b), a, b, c),
+                        7 => cdv!(ops.get_unchecked($b), a, b, c),
                         _ => {}
                     }
                 };
@@ -206,7 +210,7 @@ macro_rules! make_eval {
                 make_step!($instruction, $operand);
             )*
 
-            return combo!(ops.get_unchecked($last), a, b, c) % 8;
+            return out!(ops.get_unchecked($last), a, b, c);
         }
     };
 }
