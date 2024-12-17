@@ -124,23 +124,77 @@ pub fn part2(input: &str) -> impl Display {
     unsafe { inner2(input) }
 }
 
+fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
+    let mut i = 0;
+
+    while i < ops.len() {
+        let mut next_i = i + 2;
+
+        match ops[i] {
+            0 => {
+                a /= 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+            }
+            1 => {
+                b ^= ops[i + 1];
+            }
+            2 => {
+                b = combo!(ops[i + 1], a, b, c) % 8;
+            }
+            3 => {
+                if a != 0 {
+                    next_i = ops[i + 1] as usize;
+                }
+            }
+            4 => {
+                b ^= c;
+            }
+            5 => {
+                return combo!(ops[i + 1], a, b, c) % 8;
+            }
+            6 => {
+                b = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+            }
+            7 => {
+                c = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+            }
+            _ => {}
+        }
+
+        i = next_i;
+    }
+
+    i64::MAX
+}
+
 fn find(ops: &[i64], a: i64, b: i64, c: i64, depth: usize) -> i64 {
     if depth == ops.len() {
         return a;
     }
 
-    for i in 0..8 {
-        let next_a = 8 * a + i;
-        let output = eval_programm(next_a, b, c, ops);
+    let a8 = 8 * a;
 
-        if output[0] == ops[ops.len() - 1 - depth] {
-            let found = find(ops, next_a, b, c, depth + 1);
+    macro_rules! check {
+        ($($e:expr)?) => {
+            let a = a8$( + $e )?;
 
-            if found != 0 {
-                return found;
+            if eval_programm_first(a, b, c, ops) == ops[ops.len() - 1 - depth] {
+                let found = find(ops, a, b, c, depth + 1);
+
+                if found != 0 {
+                    return found;
+                }
             }
-        }
+        };
     }
+
+    check!();
+    check!(1);
+    check!(2);
+    check!(3);
+    check!(4);
+    check!(5);
+    check!(6);
+    check!(7);
 
     0
 }
