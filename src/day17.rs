@@ -32,7 +32,7 @@ macro_rules! combo {
 
 fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
     let mut i = 0;
-    let mut output = Vec::with_capacity(20);
+    let mut output = String::new();
 
     while i < ops.len() {
         let mut next_i = i + 2;
@@ -56,16 +56,16 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
                 b ^= c;
             }
             5 => {
-                output.push(match combo!(ops[i + 1], a, b, c) % 8 {
-                    0 => "0",
-                    1 => "1",
-                    2 => "2",
-                    3 => "3",
-                    4 => "4",
-                    5 => "5",
-                    6 => "6",
-                    7 => "7",
-                    _ => "_",
+                output.push_str(match combo!(ops[i + 1], a, b, c) % 8 {
+                    0 => "0,",
+                    1 => "1,",
+                    2 => "2,",
+                    3 => "3,",
+                    4 => "4,",
+                    5 => "5,",
+                    6 => "6,",
+                    7 => "7,",
+                    _ => "_,",
                 });
             }
             6 => {
@@ -80,7 +80,8 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
         i = next_i;
     }
 
-    output.join(",")
+    output.pop();
+    output
 }
 
 pub fn part1(input: &str) -> impl Display {
