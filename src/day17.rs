@@ -18,34 +18,34 @@ macro_rules! read_unsigned {
     }};
 }
 
-unsafe fn eval_programm(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
+macro_rules! combo {
+    ($operand:expr, $a:expr, $b:expr, $c:expr) => {{
+        match $operand {
+            0..=3 => *$operand,
+            4 => $a,
+            5 => $b,
+            6 => $c,
+            _ => 0,
+        }
+    }};
+}
+
+unsafe fn eval_full(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
     let mut i = 0;
     let mut output = String::new();
-
-    macro_rules! combo {
-        ($i:expr) => {{
-            match ops.get_unchecked($i) {
-                0..=3 => *ops.get_unchecked($i),
-                4 => a,
-                5 => b,
-                6 => c,
-                _ => 0,
-            }
-        }};
-    }
 
     while i < ops.len() {
         let mut next_i = i + 2;
 
         match ops.get_unchecked(i) {
             0 => {
-                a /= 2_u64.pow(combo!(i + 1) as u32);
+                a /= 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             1 => {
                 b ^= ops.get_unchecked(i + 1);
             }
             2 => {
-                b = combo!(i + 1) % 8;
+                b = combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
             }
             3 => {
                 if a != 0 {
@@ -56,7 +56,7 @@ unsafe fn eval_programm(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> Stri
                 b ^= c;
             }
             5 => {
-                output.push_str(match combo!(i + 1) % 8 {
+                output.push_str(match combo!(ops.get_unchecked(i + 1), a, b, c) % 8 {
                     0 => "0,",
                     1 => "1,",
                     2 => "2,",
@@ -69,10 +69,10 @@ unsafe fn eval_programm(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> Stri
                 });
             }
             6 => {
-                b = a / 2_u64.pow(combo!(i + 1) as u32);
+                b = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             7 => {
-                c = a / 2_u64.pow(combo!(i + 1) as u32);
+                c = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             _ => {}
         }
@@ -124,40 +124,28 @@ unsafe fn inner1(input: &str) -> impl Display {
         i += 4;
     }
 
-    eval_programm(a, b, c, &ops)
+    eval_full(a, b, c, &ops)
 }
 
 pub fn part2(input: &str) -> impl Display {
     unsafe { inner2(input) }
 }
 
-unsafe fn eval_programm_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> u64 {
+unsafe fn eval_return_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> u64 {
     let mut i = 0;
-
-    macro_rules! combo {
-        ($i:expr) => {{
-            match ops.get_unchecked($i) {
-                0..=3 => *ops.get_unchecked($i),
-                4 => a,
-                5 => b,
-                6 => c,
-                _ => 0,
-            }
-        }};
-    }
 
     while i < ops.len() {
         let mut next_i = i + 2;
 
         match ops.get_unchecked(i) {
             0 => {
-                a /= 2_u64.pow(combo!(i + 1) as u32);
+                a /= 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             1 => {
                 b ^= *ops.get_unchecked(i + 1);
             }
             2 => {
-                b = combo!(i + 1) % 8;
+                b = combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
             }
             3 => {
                 if a != 0 {
@@ -168,13 +156,13 @@ unsafe fn eval_programm_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -
                 b ^= c;
             }
             5 => {
-                return combo!(i + 1) % 8;
+                return combo!(ops.get_unchecked(i + 1), a, b, c) % 8;
             }
             6 => {
-                b = a / 2_u64.pow(combo!(i + 1) as u32);
+                b = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             7 => {
-                c = a / 2_u64.pow(combo!(i + 1) as u32);
+                c = a / 2_u64.pow(combo!(ops.get_unchecked(i + 1), a, b, c) as u32);
             }
             _ => {}
         }
@@ -188,38 +176,26 @@ unsafe fn eval_programm_first(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -
 macro_rules! make_eval {
     ($name:ident; $($instruction:expr, $operand:expr),*; $last:expr) => {
         unsafe fn $name(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> u64 {
-            macro_rules! combo {
-                ($b:expr) => {{
-                    match ops.get_unchecked($b) {
-                        0..=3 => *ops.get_unchecked($b),
-                        4 => a,
-                        5 => b,
-                        6 => c,
-                        _ => 0,
-                    }
-                }};
-            }
-
             macro_rules! make_step {
                 ($a:expr, $b:expr) => {
                     match ops.get_unchecked($a) {
                         0 => {
-                            a /= 2_u64.pow(combo!($b) as u32);
+                            a /= 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
                         }
                         1 => {
                             b ^= ops.get_unchecked($b);
                         }
                         2 => {
-                            b = combo!($b) % 8;
+                            b = combo!(ops.get_unchecked($b), a, b, c) % 8;
                         }
                         4 => {
                             b ^= c;
                         }
                         6 => {
-                            b = a / 2_u64.pow(combo!($b) as u32);
+                            b = a / 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
                         }
                         7 => {
-                            c = a / 2_u64.pow(combo!($b) as u32);
+                            c = a / 2_u64.pow(combo!(ops.get_unchecked($b), a, b, c) as u32);
                         }
                         _ => {}
                     }
@@ -230,20 +206,20 @@ macro_rules! make_eval {
                 make_step!($instruction, $operand);
             )*
 
-            return combo!($last) % 8;
+            return combo!(ops.get_unchecked($last), a, b, c) % 8;
         }
     };
 }
 
-make_eval!(eval1; 0, 1; 3);
-make_eval!(eval2; 0, 1, 2, 3; 5);
-make_eval!(eval3; 0, 1, 2, 3, 4, 5; 7);
-make_eval!(eval4; 0, 1, 2, 3, 4, 5, 6, 7; 9);
-make_eval!(eval5; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9; 11);
-make_eval!(eval6; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11; 13);
-make_eval!(eval7; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13; 15);
-make_eval!(eval8; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15; 17);
-make_eval!(eval9; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17; 19);
+make_eval!(eval_return_first1; 0, 1; 3);
+make_eval!(eval_return_first2; 0, 1, 2, 3; 5);
+make_eval!(eval_return_first3; 0, 1, 2, 3, 4, 5; 7);
+make_eval!(eval_return_first4; 0, 1, 2, 3, 4, 5, 6, 7; 9);
+make_eval!(eval_return_first5; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9; 11);
+make_eval!(eval_return_first6; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11; 13);
+make_eval!(eval_return_first7; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13; 15);
+make_eval!(eval_return_first8; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15; 17);
+make_eval!(eval_return_first9; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17; 19);
 
 unsafe fn find(
     eval_fn: unsafe fn(u64, u64, u64, &[u64]) -> u64,
@@ -261,8 +237,8 @@ unsafe fn find(
     let expected = *ops.get_unchecked(ops.len() - 1 - depth);
 
     macro_rules! check {
-        ($($e:expr)?) => {
-            let a = a8$( + $e )?;
+        ($a:expr) => {
+            let a = $a;
 
             if eval_fn(a, b, c, ops) == expected {
                 let found = find(eval_fn, ops, a, b, c, depth + 1);
@@ -274,14 +250,14 @@ unsafe fn find(
         };
     }
 
-    check!();
-    check!(1);
-    check!(2);
-    check!(3);
-    check!(4);
-    check!(5);
-    check!(6);
-    check!(7);
+    check!(a8);
+    check!(a8 + 1);
+    check!(a8 + 2);
+    check!(a8 + 3);
+    check!(a8 + 4);
+    check!(a8 + 5);
+    check!(a8 + 6);
+    check!(a8 + 7);
 
     0
 }
@@ -331,25 +307,29 @@ unsafe fn inner2(input: &str) -> u64 {
         i += 4;
     }
 
-    let mut ops_before_ouput = 0;
+    let mut instuctions_before_output = 0;
     for i in (0..ops.len()).step_by(2) {
-        if *ops.get_unchecked(i) == 5 {
-            ops_before_ouput = i / 2;
-            break;
+        match *ops.get_unchecked(i) {
+            3 => break, // found loop before first output
+            5 => {
+                instuctions_before_output = i / 2;
+                break;
+            }
+            _ => {}
         }
     }
 
-    let eval_fn = match ops_before_ouput {
-        1 => eval1,
-        2 => eval2,
-        3 => eval3,
-        4 => eval4,
-        5 => eval5,
-        6 => eval6,
-        7 => eval7,
-        8 => eval8,
-        9 => eval9,
-        _ => eval_programm_first,
+    let eval_fn = match instuctions_before_output {
+        1 => eval_return_first1,
+        2 => eval_return_first2,
+        3 => eval_return_first3,
+        4 => eval_return_first4,
+        5 => eval_return_first5,
+        6 => eval_return_first6,
+        7 => eval_return_first7,
+        8 => eval_return_first8,
+        9 => eval_return_first9,
+        _ => eval_return_first,
     };
 
     find(eval_fn, &ops, 0, b, c, 0)
