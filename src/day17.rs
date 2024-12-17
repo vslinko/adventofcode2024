@@ -88,7 +88,7 @@ unsafe fn inner1(input: &str) -> impl Display {
     i += 11; // skip "\n\nProgram: "
     let mut ops = Vec::with_capacity(20);
     while i < input.len() {
-        match *input.get_unchecked(i) {
+        match input.get_unchecked(i) {
             b'0' => ops.push(0),
             b'1' => ops.push(1),
             b'2' => ops.push(2),
@@ -97,9 +97,20 @@ unsafe fn inner1(input: &str) -> impl Display {
             b'5' => ops.push(5),
             b'6' => ops.push(6),
             b'7' => ops.push(7),
-            _ => panic!("Unknown op"),
+            _ => {}
         };
-        i += 2;
+        match input.get_unchecked(i + 2) {
+            b'0' => ops.push(0),
+            b'1' => ops.push(1),
+            b'2' => ops.push(2),
+            b'3' => ops.push(3),
+            b'4' => ops.push(4),
+            b'5' => ops.push(5),
+            b'6' => ops.push(6),
+            b'7' => ops.push(7),
+            _ => {}
+        };
+        i += 4;
     }
 
     eval_programm(a, b, c, &ops)
@@ -163,9 +174,20 @@ unsafe fn inner2(input: &str) -> i64 {
             b'5' => ops.push(5),
             b'6' => ops.push(6),
             b'7' => ops.push(7),
-            _ => panic!("Unknown op"),
+            _ => {}
         };
-        i += 2;
+        match *input.get_unchecked(i + 2) {
+            b'0' => ops.push(0),
+            b'1' => ops.push(1),
+            b'2' => ops.push(2),
+            b'3' => ops.push(3),
+            b'4' => ops.push(4),
+            b'5' => ops.push(5),
+            b'6' => ops.push(6),
+            b'7' => ops.push(7),
+            _ => {}
+        };
+        i += 4;
     }
 
     find(&ops, 0, b, c, 0)
