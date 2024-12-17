@@ -35,6 +35,8 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> Vec<i64> {
     let mut output = Vec::with_capacity(20);
 
     while i < ops.len() {
+        let mut next_i = i + 2;
+
         match ops[i] {
             0 => {
                 a /= 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
@@ -47,8 +49,7 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> Vec<i64> {
             }
             3 => {
                 if a != 0 {
-                    i = ops[i + 1] as usize;
-                    continue;
+                    next_i = ops[i + 1] as usize;
                 }
             }
             4 => {
@@ -66,7 +67,7 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> Vec<i64> {
             _ => {}
         }
 
-        i += 2;
+        i = next_i;
     }
 
     output
