@@ -18,34 +18,34 @@ macro_rules! read_unsigned {
     }};
 }
 
-macro_rules! combo {
-    ($operand:expr, $a:expr, $b:expr, $c:expr) => {{
-        match $operand {
-            0..=3 => $operand,
-            4 => $a,
-            5 => $b,
-            6 => $c,
-            _ => 0,
-        }
-    }};
-}
-
 fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
     let mut i = 0;
     let mut output = String::new();
+
+    macro_rules! combo {
+        ($i:expr) => {{
+            match ops[$i] {
+                0..=3 => ops[$i],
+                4 => a,
+                5 => b,
+                6 => c,
+                _ => 0,
+            }
+        }};
+    }
 
     while i < ops.len() {
         let mut next_i = i + 2;
 
         match ops[i] {
             0 => {
-                a /= 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                a /= 2_i64.pow(combo!(i + 1) as u32);
             }
             1 => {
                 b ^= ops[i + 1];
             }
             2 => {
-                b = combo!(ops[i + 1], a, b, c) % 8;
+                b = combo!(i + 1) % 8;
             }
             3 => {
                 if a != 0 {
@@ -56,7 +56,7 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
                 b ^= c;
             }
             5 => {
-                output.push_str(match combo!(ops[i + 1], a, b, c) % 8 {
+                output.push_str(match combo!(i + 1) % 8 {
                     0 => "0,",
                     1 => "1,",
                     2 => "2,",
@@ -69,10 +69,10 @@ fn eval_programm(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> String {
                 });
             }
             6 => {
-                b = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                b = a / 2_i64.pow(combo!(i + 1) as u32);
             }
             7 => {
-                c = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                c = a / 2_i64.pow(combo!(i + 1) as u32);
             }
             _ => {}
         }
@@ -134,18 +134,30 @@ pub fn part2(input: &str) -> impl Display {
 fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
     let mut i = 0;
 
+    macro_rules! combo {
+        ($i:expr) => {{
+            match ops[$i] {
+                0..=3 => ops[$i],
+                4 => a,
+                5 => b,
+                6 => c,
+                _ => 0,
+            }
+        }};
+    }
+
     while i < ops.len() {
         let mut next_i = i + 2;
 
         match ops[i] {
             0 => {
-                a /= 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                a /= 2_i64.pow(combo!(i + 1) as u32);
             }
             1 => {
                 b ^= ops[i + 1];
             }
             2 => {
-                b = combo!(ops[i + 1], a, b, c) % 8;
+                b = combo!(i + 1) % 8;
             }
             3 => {
                 if a != 0 {
@@ -156,13 +168,13 @@ fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
                 b ^= c;
             }
             5 => {
-                return combo!(ops[i + 1], a, b, c) % 8;
+                return combo!(i + 1) % 8;
             }
             6 => {
-                b = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                b = a / 2_i64.pow(combo!(i + 1) as u32);
             }
             7 => {
-                c = a / 2_i64.pow(combo!(ops[i + 1], a, b, c) as u32);
+                c = a / 2_i64.pow(combo!(i + 1) as u32);
             }
             _ => {}
         }
@@ -173,7 +185,74 @@ fn eval_programm_first(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
     i64::MAX
 }
 
-fn find(ops: &[i64], a: i64, b: i64, c: i64, depth: usize) -> i64 {
+macro_rules! make_eval {
+    ($name:ident; $($instruction:expr, $operand:expr),*; $last:expr) => {
+        unsafe fn $name(mut a: i64, mut b: i64, mut c: i64, ops: &[i64]) -> i64 {
+            macro_rules! combo {
+                ($a:expr) => {{
+                    match ops[$a] {
+                        0..=3 => ops[$a],
+                        4 => a,
+                        5 => b,
+                        6 => c,
+                        _ => 0,
+                    }
+                }};
+            }
+
+            macro_rules! make_step {
+                ($a:expr, $b:expr) => {
+                    match ops[$a] {
+                        0 => {
+                            a /= 2_i64.pow(combo!($b) as u32);
+                        }
+                        1 => {
+                            b ^= ops[$b];
+                        }
+                        2 => {
+                            b = combo!($b) % 8;
+                        }
+                        4 => {
+                            b ^= c;
+                        }
+                        6 => {
+                            b = a / 2_i64.pow(combo!($b) as u32);
+                        }
+                        7 => {
+                            c = a / 2_i64.pow(combo!($b) as u32);
+                        }
+                        _ => {}
+                    }
+                };
+            }
+
+            $(
+                make_step!($instruction, $operand);
+            )*
+
+            return combo!($last) % 8;
+        }
+    };
+}
+
+make_eval!(eval1; 0, 1; 3);
+make_eval!(eval2; 0, 1, 2, 3; 5);
+make_eval!(eval3; 0, 1, 2, 3, 4, 5; 7);
+make_eval!(eval4; 0, 1, 2, 3, 4, 5, 6, 7; 9);
+make_eval!(eval5; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9; 11);
+make_eval!(eval6; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11; 13);
+make_eval!(eval7; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13; 15);
+make_eval!(eval8; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15; 17);
+make_eval!(eval9; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17; 19);
+
+unsafe fn find(
+    eval_fn: unsafe fn(i64, i64, i64, &[i64]) -> i64,
+    ops: &[i64],
+    a: i64,
+    b: i64,
+    c: i64,
+    depth: usize,
+) -> i64 {
     if depth == ops.len() {
         return a;
     }
@@ -184,8 +263,8 @@ fn find(ops: &[i64], a: i64, b: i64, c: i64, depth: usize) -> i64 {
         ($($e:expr)?) => {
             let a = a8$( + $e )?;
 
-            if eval_programm_first(a, b, c, ops) == ops[ops.len() - 1 - depth] {
-                let found = find(ops, a, b, c, depth + 1);
+            if eval_fn(a, b, c, ops) == ops[ops.len() - 1 - depth] {
+                let found = find(eval_fn, ops, a, b, c, depth + 1);
 
                 if found != 0 {
                     return found;
@@ -251,7 +330,28 @@ unsafe fn inner2(input: &str) -> i64 {
         i += 4;
     }
 
-    find(&ops, 0, b, c, 0)
+    let mut ops_before_ouput = 0;
+    for i in (0..ops.len()).step_by(2) {
+        if ops[i] == 5 {
+            ops_before_ouput = i / 2;
+            break;
+        }
+    }
+
+    let eval_fn = match ops_before_ouput {
+        1 => eval1,
+        2 => eval2,
+        3 => eval3,
+        4 => eval4,
+        5 => eval5,
+        6 => eval6,
+        7 => eval7,
+        8 => eval8,
+        9 => eval9,
+        _ => eval_programm_first,
+    };
+
+    find(eval_fn, &ops, 0, b, c, 0)
 }
 
 #[cfg(test)]
