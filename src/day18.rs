@@ -76,7 +76,7 @@ unsafe fn get_directions(index: usize) -> Vec<usize> {
     directions
 }
 
-unsafe fn find_fastest_path_score(grid: &[u8; GRID_SIZE]) -> usize {
+unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
     let mut open_set = BinaryHeap::with_capacity(1000);
     let mut closed_set = [false; GRID_SIZE];
     let mut best_scores = [usize::MAX; GRID_SIZE];
@@ -95,7 +95,7 @@ unsafe fn find_fastest_path_score(grid: &[u8; GRID_SIZE]) -> usize {
         }
 
         for next_index in get_directions(current.index) {
-            if *grid.get_unchecked(next_index) == 1 || *closed_set.get_unchecked(next_index) {
+            if *grid.get_unchecked(next_index) || *closed_set.get_unchecked(next_index) {
                 continue;
             }
 
@@ -122,7 +122,7 @@ pub fn part1(input: &str) -> impl Display {
 
 unsafe fn inner1(input: &str) -> impl Display {
     let input = input.as_bytes();
-    let mut grid = [0u8; GRID_SIZE];
+    let mut grid = [false; GRID_SIZE];
     let mut i = 0;
 
     macro_rules! corrupt {
@@ -130,7 +130,7 @@ unsafe fn inner1(input: &str) -> impl Display {
             *grid.get_unchecked_mut(index!(
                 read_0_99_and_skip_next!(input, i),
                 read_0_99_and_skip_next!(input, i)
-            )) = 1;
+            )) = true;
         };
     }
 
@@ -156,7 +156,7 @@ pub fn part2(input: &str) -> impl Display {
 
 unsafe fn inner2(input: &str) -> impl Display {
     let input = input.as_bytes();
-    let mut initial_grid = [0u8; GRID_SIZE];
+    let mut initial_grid = [false; GRID_SIZE];
     let mut i = 0;
 
     let mut corrupted = Vec::with_capacity(3500);
@@ -169,7 +169,7 @@ unsafe fn inner2(input: &str) -> impl Display {
 
     let mut c = 0;
     while c < PART1_BYTES {
-        *initial_grid.get_unchecked_mut(*corrupted.get_unchecked(c)) = 1;
+        *initial_grid.get_unchecked_mut(*corrupted.get_unchecked(c)) = true;
         c += 1;
     }
 
@@ -181,7 +181,7 @@ unsafe fn inner2(input: &str) -> impl Display {
         let mid = (left + right) / 2;
 
         for i in PART1_BYTES..mid {
-            *grid.get_unchecked_mut(*corrupted.get_unchecked(i)) = 1;
+            *grid.get_unchecked_mut(*corrupted.get_unchecked(i)) = true;
         }
 
         if find_fastest_path_score(&grid) == usize::MAX {
