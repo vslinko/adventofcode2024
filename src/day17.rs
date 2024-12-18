@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 macro_rules! read_unsigned {
     ($input:expr, $i:expr) => {{
         let mut num = 0;
@@ -118,11 +116,11 @@ unsafe fn eval_full(mut a: u64, mut b: u64, mut c: u64, ops: &[u64]) -> String {
     output
 }
 
-pub fn part1(input: &str) -> impl Display {
+pub fn part1(input: &str) -> String {
     unsafe { inner1(input) }
 }
 
-unsafe fn inner1(input: &str) -> impl Display {
+unsafe fn inner1(input: &str) -> String {
     let input = input.as_bytes();
     let mut i = 12; // skip "Register A: "
     let a = read_unsigned!(input, i);
@@ -141,7 +139,7 @@ unsafe fn inner1(input: &str) -> impl Display {
     eval_full(a, b, c, &ops)
 }
 
-pub fn part2(input: &str) -> impl Display {
+pub fn part2(input: &str) -> u64 {
     unsafe { inner2(input) }
 }
 
