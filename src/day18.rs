@@ -103,7 +103,7 @@ unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
             ($next_index:expr) => {
                 let next_index = $next_index;
 
-                if *grid.get_unchecked(next_index) && *closed_set.get_unchecked(next_index) {
+                if *closed_set.get_unchecked(next_index) && *grid.get_unchecked(next_index) {
                     let next_score = current.score + 1;
 
                     if next_score < *best_scores.get_unchecked(next_index) {
