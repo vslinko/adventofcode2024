@@ -90,19 +90,19 @@ unsafe fn find_fastest_path_score(grid: &[u8; GRID_SIZE]) -> usize {
             return current.score;
         }
 
-        if current.score > best_scores[current.index] {
+        if current.score > *best_scores.get_unchecked(current.index) {
             continue;
         }
 
         for next_index in get_directions(current.index) {
-            if *grid.get_unchecked(next_index) == 1 || closed_set[next_index] {
+            if *grid.get_unchecked(next_index) == 1 || *closed_set.get_unchecked(next_index) {
                 continue;
             }
 
             let next_score = current.score + 1;
 
-            if next_score < best_scores[next_index] {
-                best_scores[next_index] = next_score;
+            if next_score < *best_scores.get_unchecked(next_index) {
+                *best_scores.get_unchecked_mut(next_index) = next_score;
                 open_set.push(Node {
                     score: next_score,
                     index: next_index,
@@ -110,7 +110,7 @@ unsafe fn find_fastest_path_score(grid: &[u8; GRID_SIZE]) -> usize {
             }
         }
 
-        closed_set[current.index] = true;
+        *closed_set.get_unchecked_mut(current.index) = true;
     }
 
     usize::MAX
