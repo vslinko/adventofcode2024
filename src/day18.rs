@@ -54,26 +54,25 @@ impl PartialOrd for Node {
     }
 }
 
-const DIRECTIONS: [[usize; 4]; GRID_SIZE] = {
-    let mut dirs = [[0; 4]; GRID_SIZE];
-
+const DIRECTIONS: [usize; GRID_SIZE * 4] = {
+    let mut dirs = [0; GRID_SIZE * 4];
     let mut i = 0;
 
     while i < GRID_SIZE {
         if i >= WIDTH {
-            dirs[i][0] = i - WIDTH;
+            dirs[i * 4] = i - WIDTH;
         }
 
         if i % WIDTH != 0 {
-            dirs[i][1] = i - 1;
+            dirs[i * 4 + 1] = i - 1;
         }
 
         if i % WIDTH != WIDTH - 1 {
-            dirs[i][2] = i + 1;
+            dirs[i * 4 + 2] = i + 1;
         }
 
         if i < GRID_SIZE - WIDTH {
-            dirs[i][3] = i + WIDTH;
+            dirs[i * 4 + 3] = i + WIDTH;
         }
 
         i += 1;
@@ -84,13 +83,12 @@ const DIRECTIONS: [[usize; 4]; GRID_SIZE] = {
 
 unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
     let mut open_set = BinaryHeap::with_capacity(1000);
-    let mut closed_set = [false; GRID_SIZE];
+    let mut closed_set = [true; GRID_SIZE];
     let mut best_scores = [usize::MAX; GRID_SIZE];
 
-    let start_node = Node { score: 0, index: 0 };
-    open_set.push(start_node);
+    open_set.push(Node { score: 0, index: 0 });
     *best_scores.get_unchecked_mut(START_INDEX) = 0;
-    *closed_set.get_unchecked_mut(START_INDEX) = true;
+    *closed_set.get_unchecked_mut(START_INDEX) = false;
 
     while let Some(current) = open_set.pop() {
         if current.index == END_INDEX {
@@ -101,23 +99,31 @@ unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
             continue;
         }
 
-        for &next_index in DIRECTIONS.get_unchecked(current.index) {
-            if *grid.get_unchecked(next_index) || *closed_set.get_unchecked(next_index) {
-                continue;
-            }
+        macro_rules! check_direction {
+            ($next_index:expr) => {
+                let next_index = $next_index;
 
-            let next_score = current.score + 1;
+                if *grid.get_unchecked(next_index) && *closed_set.get_unchecked(next_index) {
+                    let next_score = current.score + 1;
 
-            if next_score < *best_scores.get_unchecked(next_index) {
-                *best_scores.get_unchecked_mut(next_index) = next_score;
-                open_set.push(Node {
-                    score: next_score,
-                    index: next_index,
-                });
-            }
+                    if next_score < *best_scores.get_unchecked(next_index) {
+                        *best_scores.get_unchecked_mut(next_index) = next_score;
+
+                        open_set.push(Node {
+                            score: next_score,
+                            index: next_index,
+                        });
+                    }
+                }
+            };
         }
 
-        *closed_set.get_unchecked_mut(current.index) = true;
+        check_direction!(*DIRECTIONS.get_unchecked(current.index * 4));
+        check_direction!(*DIRECTIONS.get_unchecked(current.index * 4 + 1));
+        check_direction!(*DIRECTIONS.get_unchecked(current.index * 4 + 2));
+        check_direction!(*DIRECTIONS.get_unchecked(current.index * 4 + 3));
+
+        *closed_set.get_unchecked_mut(current.index) = false;
     }
 
     usize::MAX
@@ -129,7 +135,7 @@ pub fn part1(input: &str) -> impl Display {
 
 unsafe fn inner1(input: &str) -> impl Display {
     let input = input.as_bytes();
-    let mut grid = [false; GRID_SIZE];
+    let mut grid = [true; GRID_SIZE];
     let mut i = 0;
 
     macro_rules! corrupt {
@@ -137,7 +143,7 @@ unsafe fn inner1(input: &str) -> impl Display {
             *grid.get_unchecked_mut(index!(
                 read_0_99_and_skip_next!(input, i),
                 read_0_99_and_skip_next!(input, i)
-            )) = true;
+            )) = false;
         };
     }
 
@@ -163,7 +169,7 @@ pub fn part2(input: &str) -> impl Display {
 
 unsafe fn inner2(input: &str) -> impl Display {
     let input = input.as_bytes();
-    let mut initial_grid = [false; GRID_SIZE];
+    let mut initial_grid = [true; GRID_SIZE];
     let mut i = 0;
 
     let mut corrupted = Vec::with_capacity(3500);
@@ -176,7 +182,7 @@ unsafe fn inner2(input: &str) -> impl Display {
 
     let mut c = 0;
     while c < PART1_BYTES {
-        *initial_grid.get_unchecked_mut(*corrupted.get_unchecked(c)) = true;
+        *initial_grid.get_unchecked_mut(*corrupted.get_unchecked(c)) = false;
         c += 1;
     }
 
@@ -188,7 +194,7 @@ unsafe fn inner2(input: &str) -> impl Display {
         let mid = (left + right) / 2;
 
         for i in PART1_BYTES..mid {
-            *grid.get_unchecked_mut(*corrupted.get_unchecked(i)) = true;
+            *grid.get_unchecked_mut(*corrupted.get_unchecked(i)) = false;
         }
 
         if find_fastest_path_score(&grid) == usize::MAX {
