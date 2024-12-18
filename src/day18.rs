@@ -83,7 +83,7 @@ unsafe fn find_fastest_path_score(grid: &[u8; GRID_SIZE]) -> usize {
 
     let start_node = Node { score: 0, index: 0 };
     open_set.push(start_node);
-    best_scores[START_INDEX] = 0;
+    *best_scores.get_unchecked_mut(START_INDEX) = 0;
 
     while let Some(current) = open_set.pop() {
         if current.index == END_INDEX {
@@ -127,10 +127,10 @@ unsafe fn inner1(input: &str) -> impl Display {
 
     macro_rules! corrupt {
         () => {
-            grid[index!(
+            *grid.get_unchecked_mut(index!(
                 read_0_99_and_skip_next!(input, i),
                 read_0_99_and_skip_next!(input, i)
-            )] = 1;
+            )) = 1;
         };
     }
 
@@ -169,7 +169,7 @@ unsafe fn inner2(input: &str) -> impl Display {
 
     let mut c = 0;
     while c < PART1_BYTES {
-        initial_grid[corrupted[c]] = 1;
+        *initial_grid.get_unchecked_mut(*corrupted.get_unchecked(c)) = 1;
         c += 1;
     }
 
@@ -181,7 +181,7 @@ unsafe fn inner2(input: &str) -> impl Display {
         let mid = (left + right) / 2;
 
         for i in PART1_BYTES..mid {
-            grid[corrupted[i]] = 1;
+            *grid.get_unchecked_mut(*corrupted.get_unchecked(i)) = 1;
         }
 
         if find_fastest_path_score(&grid) == usize::MAX {
@@ -193,7 +193,9 @@ unsafe fn inner2(input: &str) -> impl Display {
         grid.copy_from_slice(&initial_grid);
     }
 
-    (corrupted[left - 1] / WIDTH).to_string() + "," + &(corrupted[left - 1] % WIDTH).to_string()
+    (corrupted.get_unchecked(left - 1) / WIDTH).to_string()
+        + ","
+        + &(corrupted.get_unchecked(left - 1) % WIDTH).to_string()
 }
 
 #[cfg(test)]
