@@ -1,6 +1,5 @@
 use dary_heap::BinaryHeap;
 use std::cmp::Ordering;
-use std::fmt::Display;
 
 const WIDTH: usize = 71;
 const HEIGHT: usize = 71;
@@ -129,11 +128,11 @@ unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
     usize::MAX
 }
 
-pub fn part1(input: &str) -> impl Display {
+pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
 }
 
-unsafe fn inner1(input: &str) -> impl Display {
+unsafe fn inner1(input: &str) -> usize {
     let input = input.as_bytes();
     let mut grid = [true; GRID_SIZE];
     let mut i = 0;
@@ -163,11 +162,11 @@ unsafe fn inner1(input: &str) -> impl Display {
     find_fastest_path_score(&grid)
 }
 
-pub fn part2(input: &str) -> impl Display {
+pub fn part2(input: &str) -> String {
     unsafe { inner2(input) }
 }
 
-unsafe fn inner2(input: &str) -> impl Display {
+unsafe fn inner2(input: &str) -> String {
     let input = input.as_bytes();
     let mut initial_grid = [true; GRID_SIZE];
     let mut i = 0;
