@@ -193,11 +193,7 @@ unsafe fn inner2(input: &str) -> impl Display {
         grid.copy_from_slice(&initial_grid);
     }
 
-    format!(
-        "{},{}",
-        corrupted[left - 1] / WIDTH,
-        corrupted[left - 1] % WIDTH
-    )
+    (corrupted[left - 1] / WIDTH).to_string() + "," + &(corrupted[left - 1] % WIDTH).to_string()
 }
 
 #[cfg(test)]
