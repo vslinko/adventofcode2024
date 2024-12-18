@@ -173,24 +173,31 @@ unsafe fn inner2(input: &str) -> impl Display {
         c += 1;
     }
 
-    let mut left = 1024;
+    let mut left = PART1_BYTES;
     let mut right = corrupted.len();
+    let mut grid = initial_grid.clone();
 
     while left < right {
         let mid = (left + right) / 2;
-        let mut grid = initial_grid.clone();
+
         for i in PART1_BYTES..mid {
             grid[corrupted[i]] = 1;
         }
 
         if find_fastest_path_score(&grid) == usize::MAX {
-            right = mid - 1;
+            right = mid;
         } else {
-            left = mid;
+            left = mid + 1;
         }
+
+        grid.copy_from_slice(&initial_grid);
     }
 
-    format!("{},{}", corrupted[left] / WIDTH, corrupted[left] % WIDTH)
+    format!(
+        "{},{}",
+        corrupted[left - 1] / WIDTH,
+        corrupted[left - 1] % WIDTH
+    )
 }
 
 #[cfg(test)]
