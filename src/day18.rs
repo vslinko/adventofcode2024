@@ -54,27 +54,33 @@ impl PartialOrd for Node {
     }
 }
 
-unsafe fn get_directions(index: usize) -> Vec<usize> {
-    let mut directions = Vec::with_capacity(4);
+const DIRECTIONS: [[usize; 4]; GRID_SIZE] = {
+    let mut dirs = [[0; 4]; GRID_SIZE];
 
-    if index >= WIDTH {
-        directions.push(index - WIDTH);
+    let mut i = 0;
+
+    while i < GRID_SIZE {
+        if i >= WIDTH {
+            dirs[i][0] = i - WIDTH;
+        }
+
+        if i % WIDTH != 0 {
+            dirs[i][1] = i - 1;
+        }
+
+        if i % WIDTH != WIDTH - 1 {
+            dirs[i][2] = i + 1;
+        }
+
+        if i < GRID_SIZE - WIDTH {
+            dirs[i][3] = i + WIDTH;
+        }
+
+        i += 1;
     }
 
-    if index % WIDTH != 0 {
-        directions.push(index - 1);
-    }
-
-    if index % WIDTH != WIDTH - 1 {
-        directions.push(index + 1);
-    }
-
-    if index < GRID_SIZE - WIDTH {
-        directions.push(index + WIDTH);
-    }
-
-    directions
-}
+    dirs
+};
 
 unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
     let mut open_set = BinaryHeap::with_capacity(1000);
@@ -84,6 +90,7 @@ unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
     let start_node = Node { score: 0, index: 0 };
     open_set.push(start_node);
     *best_scores.get_unchecked_mut(START_INDEX) = 0;
+    *closed_set.get_unchecked_mut(START_INDEX) = true;
 
     while let Some(current) = open_set.pop() {
         if current.index == END_INDEX {
@@ -94,7 +101,7 @@ unsafe fn find_fastest_path_score(grid: &[bool; GRID_SIZE]) -> usize {
             continue;
         }
 
-        for next_index in get_directions(current.index) {
+        for &next_index in DIRECTIONS.get_unchecked(current.index) {
             if *grid.get_unchecked(next_index) || *closed_set.get_unchecked(next_index) {
                 continue;
             }
