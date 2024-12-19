@@ -34,8 +34,8 @@ unsafe fn inner1(input: &str) -> usize {
         .count()
 }
 
-fn can_make_design(design: &str, patterns_by_length: &FxHashMap<usize, Vec<&str>>) -> bool {
-    fn can_make_design_recursive(
+unsafe fn can_make_design(design: &str, patterns_by_length: &FxHashMap<usize, Vec<&str>>) -> bool {
+    unsafe fn can_make_design_recursive(
         pos: usize,
         design: &[u8],
         patterns_by_length: &FxHashMap<usize, Vec<&str>>,
@@ -58,7 +58,7 @@ fn can_make_design(design: &str, patterns_by_length: &FxHashMap<usize, Vec<&str>
 
             'pattern_loop: for pattern in patterns {
                 for (j, &b) in pattern.as_bytes().iter().enumerate() {
-                    if design[pos + j] != b {
+                    if *design.get_unchecked(pos + j) != b {
                         continue 'pattern_loop;
                     }
                 }
@@ -91,13 +91,13 @@ unsafe fn inner2(input: &str) -> u64 {
         .sum()
 }
 
-fn count_possible_combinations(
+unsafe fn count_possible_combinations(
     design: &str,
     patterns_by_length: &FxHashMap<usize, Vec<&str>>,
 ) -> u64 {
     let design = design.as_bytes();
     let mut dp = vec![0; design.len() + 1];
-    dp[design.len()] = 1;
+    *dp.get_unchecked_mut(design.len()) = 1;
 
     for i in (0..design.len()).rev() {
         for (&length, patterns) in patterns_by_length.iter() {
@@ -107,20 +107,20 @@ fn count_possible_combinations(
 
             'pattern_loop: for pattern in patterns {
                 for (j, &b) in pattern.as_bytes().iter().enumerate() {
-                    if design[i + j] != b {
+                    if *design.get_unchecked(i + j) != b {
                         continue 'pattern_loop;
                     }
                 }
 
-                if dp[i + length] > 0 {
-                    dp[i] += dp[i + length];
+                if *dp.get_unchecked(i + length) > 0 {
+                    *dp.get_unchecked_mut(i) += *dp.get_unchecked(i + length);
                     break;
                 }
             }
         }
     }
 
-    dp[0]
+    *dp.get_unchecked(0)
 }
 
 #[cfg(test)]
