@@ -1,6 +1,5 @@
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
-use std::collections::HashMap;
 
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
@@ -78,19 +77,20 @@ pub fn part2(input: &str) -> u64 {
 }
 
 unsafe fn inner2(input: &str) -> u64 {
-    let mut lines = input.trim().lines();
+    let mut lines = input.lines();
 
-    let patterns: Vec<&str> = lines.next().unwrap_or("").split(", ").collect();
-
-    let mut patterns_by_length: HashMap<usize, Vec<&str>> = HashMap::new();
-    for &pattern in patterns.iter() {
-        patterns_by_length
-            .entry(pattern.len())
-            .or_default()
-            .push(pattern);
-    }
+    let patterns_by_length: FxHashMap<usize, Vec<&str>> =
+        lines.next().unwrap_unchecked().split(',').fold(
+            FxHashMap::with_capacity_and_hasher(8, FxBuildHasher::default()),
+            |mut acc, pattern| {
+                let pattern = pattern.trim_start();
+                acc.entry(pattern.len()).or_default().push(pattern);
+                acc
+            },
+        );
 
     lines.next();
+
     let designs: Vec<&str> = lines.collect();
 
     designs
@@ -101,7 +101,7 @@ unsafe fn inner2(input: &str) -> u64 {
 
 fn count_possible_combinations(
     design: &str,
-    patterns_by_length: &HashMap<usize, Vec<&str>>,
+    patterns_by_length: &FxHashMap<usize, Vec<&str>>,
 ) -> u64 {
     let design_bytes = design.as_bytes();
     let mut dp = vec![0; design_bytes.len() + 1];
