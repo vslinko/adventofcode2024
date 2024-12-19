@@ -7,12 +7,13 @@ pub fn part1(input: &str) -> usize {
 }
 
 unsafe fn inner1(input: &str) -> usize {
-    let mut lines = input.trim().lines();
+    let mut lines = input.lines();
 
     let patterns_by_length: FxHashMap<usize, Vec<&str>> =
-        lines.next().unwrap_or("").split(", ").fold(
+        lines.next().unwrap_unchecked().split(',').fold(
             FxHashMap::with_capacity_and_hasher(8, FxBuildHasher::default()),
             |mut acc, pattern| {
+                let pattern = pattern.trim_start();
                 acc.entry(pattern.len()).or_default().push(pattern);
                 acc
             },
