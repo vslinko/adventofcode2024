@@ -30,4 +30,4 @@ fi
 echo $msg
 
 cargo test test$suffix -- --nocapture
-cargo bench bench$suffix
+cargo bench bench$suffix --config 'build.rustflags=["--cfg", "day19_series"]'

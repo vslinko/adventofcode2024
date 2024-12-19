@@ -25,3 +25,6 @@ opt-level = 3
 [[bench]]
 name = "bench"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(day19_series)'] }

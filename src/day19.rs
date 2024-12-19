@@ -1,5 +1,21 @@
-use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+
+#[cfg(not(day19_series))]
+use rayon::prelude::*;
+
+#[cfg(not(day19_series))]
+macro_rules! iter {
+    ($input:expr) => {
+        $input.par_iter()
+    };
+}
+
+#[cfg(day19_series)]
+macro_rules! iter {
+    ($input:expr) => {
+        $input.iter()
+    };
+}
 
 unsafe fn parse(input: &str) -> (FxHashMap<usize, Vec<&str>>, Vec<&str>) {
     let mut lines = input.lines();
@@ -28,8 +44,7 @@ pub fn part1(input: &str) -> usize {
 unsafe fn inner1(input: &str) -> usize {
     let (patterns_by_length, designs) = parse(input);
 
-    designs
-        .par_iter()
+    iter!(designs)
         .filter(|design| can_make_design(design, &patterns_by_length))
         .count()
 }
@@ -85,8 +100,7 @@ pub fn part2(input: &str) -> u64 {
 unsafe fn inner2(input: &str) -> u64 {
     let (patterns_by_length, designs) = parse(input);
 
-    designs
-        .par_iter()
+    iter!(designs)
         .map(|design| count_possible_combinations(design, &patterns_by_length))
         .sum()
 }
@@ -101,7 +115,9 @@ unsafe fn count_possible_combinations(
 
     for i in (0..design.len()).rev() {
         for (&length, patterns) in patterns_by_length.iter() {
-            if design.len() - i < length {
+            let next_pos = i + length;
+
+            if design.len() < next_pos {
                 continue;
             }
 
@@ -112,8 +128,8 @@ unsafe fn count_possible_combinations(
                     }
                 }
 
-                if *dp.get_unchecked(i + length) > 0 {
-                    *dp.get_unchecked_mut(i) += *dp.get_unchecked(i + length);
+                if *dp.get_unchecked(next_pos) > 0 {
+                    *dp.get_unchecked_mut(i) += *dp.get_unchecked(next_pos);
                     break;
                 }
             }
