@@ -86,7 +86,7 @@ unsafe fn inner2(input: &str) -> u64 {
     let (patterns_by_length, designs) = parse(input);
 
     designs
-        .iter()
+        .par_iter()
         .map(|design| count_possible_combinations(design, &patterns_by_length))
         .sum()
 }
