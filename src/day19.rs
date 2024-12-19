@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
+use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use std::collections::HashMap;
 
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
@@ -24,7 +24,7 @@ unsafe fn inner1(input: &str) -> usize {
     let designs: Vec<&str> = lines.collect();
 
     designs
-        .iter()
+        .par_iter()
         .filter(|design| can_make_design(design, &patterns_by_length))
         .count()
 }
@@ -44,20 +44,20 @@ fn can_make_design_recursive(
     }
 
     for (&length, patterns) in patterns_by_length.iter() {
-        if pos + length > design.len() {
+        let next_pos = pos + length;
+
+        if next_pos > design.len() {
             continue;
         }
 
         'pattern_loop: for pattern in patterns {
-            let pattern_bytes = pattern.as_bytes();
-
-            for (j, &pattern_byte) in pattern_bytes.iter().enumerate() {
+            for (j, &pattern_byte) in pattern.as_bytes().iter().enumerate() {
                 if design[pos + j] != pattern_byte {
                     continue 'pattern_loop;
                 }
             }
 
-            if can_make_design_recursive(pos + length, design, patterns_by_length, memo) {
+            if can_make_design_recursive(next_pos, design, patterns_by_length, memo) {
                 return true;
             }
         }
