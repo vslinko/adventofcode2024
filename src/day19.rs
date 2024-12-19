@@ -1,0 +1,142 @@
+use std::collections::HashMap;
+
+pub fn part1(input: &str) -> usize {
+    unsafe { inner1(input) }
+}
+
+unsafe fn inner1(input: &str) -> usize {
+    let mut lines = input.trim().lines();
+
+    let patterns: Vec<&str> = lines.next().unwrap_or("").split(", ").collect();
+
+    let mut patterns_by_length: HashMap<usize, Vec<&str>> = HashMap::new();
+    for &pattern in patterns.iter() {
+        patterns_by_length
+            .entry(pattern.len())
+            .or_default()
+            .push(pattern);
+    }
+
+    lines.next();
+    let designs: Vec<&str> = lines.collect();
+
+    designs
+        .iter()
+        .filter(|design| can_make_design(design, &patterns_by_length))
+        .count()
+}
+
+fn can_make_design(design: &str, patterns_by_length: &HashMap<usize, Vec<&str>>) -> bool {
+    let design_bytes = design.as_bytes();
+    let mut dp = vec![false; design_bytes.len() + 1];
+    dp[design_bytes.len()] = true;
+
+    for i in (0..design_bytes.len()).rev() {
+        for (&length, patterns) in patterns_by_length.iter() {
+            if design_bytes.len() - i < length {
+                continue;
+            }
+
+            'pattern_loop: for pattern in patterns {
+                let pattern_bytes = pattern.as_bytes();
+
+                for (j, &pattern_byte) in pattern_bytes.iter().enumerate() {
+                    if design_bytes[i + j] != pattern_byte {
+                        continue 'pattern_loop;
+                    }
+                }
+
+                if dp[i + length] {
+                    dp[i] = true;
+                    break;
+                }
+            }
+
+            if dp[i] {
+                break;
+            }
+        }
+    }
+
+    dp[0]
+}
+
+pub fn part2(input: &str) -> u64 {
+    unsafe { inner2(input) }
+}
+
+unsafe fn inner2(input: &str) -> u64 {
+    let mut lines = input.trim().lines();
+
+    let patterns: Vec<&str> = lines.next().unwrap_or("").split(", ").collect();
+
+    let mut patterns_by_length: HashMap<usize, Vec<&str>> = HashMap::new();
+    for &pattern in patterns.iter() {
+        patterns_by_length
+            .entry(pattern.len())
+            .or_default()
+            .push(pattern);
+    }
+
+    lines.next();
+    let designs: Vec<&str> = lines.collect();
+
+    designs
+        .iter()
+        .map(|design| count_possible_combinations(design, &patterns_by_length))
+        .sum()
+}
+
+fn count_possible_combinations(
+    design: &str,
+    patterns_by_length: &HashMap<usize, Vec<&str>>,
+) -> u64 {
+    let design_bytes = design.as_bytes();
+    let mut dp = vec![0; design_bytes.len() + 1];
+    dp[design_bytes.len()] = 1;
+
+    for i in (0..design_bytes.len()).rev() {
+        for (&length, patterns) in patterns_by_length.iter() {
+            if design_bytes.len() - i < length {
+                continue;
+            }
+
+            'pattern_loop: for pattern in patterns {
+                let pattern_bytes = pattern.as_bytes();
+
+                for (j, &pattern_byte) in pattern_bytes.iter().enumerate() {
+                    if design_bytes[i + j] != pattern_byte {
+                        continue 'pattern_loop;
+                    }
+                }
+
+                if dp[i + length] > 0 {
+                    dp[i] += dp[i + length];
+                    break;
+                }
+            }
+        }
+    }
+
+    dp[0]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::read_to_string;
+
+    #[test]
+    fn test_day19_part1() {
+        let prod_input = read_to_string("./inputs/19.txt").unwrap();
+        let prod_output = read_to_string("./outputs/19p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
+    }
+
+    #[test]
+    fn test_day19_part2() {
+        let prod_input = read_to_string("./inputs/19.txt").unwrap();
+        let prod_output = read_to_string("./outputs/19p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
+    }
+}
