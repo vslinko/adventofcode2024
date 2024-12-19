@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
@@ -26,39 +27,48 @@ unsafe fn inner1(input: &str) -> usize {
         .count()
 }
 
-fn can_make_design(design: &str, patterns_by_length: &HashMap<usize, Vec<&str>>) -> bool {
-    let design_bytes = design.as_bytes();
-    let mut dp = vec![false; design_bytes.len() + 1];
-    dp[design_bytes.len()] = true;
+fn can_make_design_recursive(
+    pos: usize,
+    design: &[u8],
+    patterns_by_length: &HashMap<usize, Vec<&str>>,
+    memo: &mut HashSet<usize>,
+) -> bool {
+    if pos == design.len() {
+        return true;
+    }
 
-    for i in (0..design_bytes.len()).rev() {
-        for (&length, patterns) in patterns_by_length.iter() {
-            if design_bytes.len() - i < length {
-                continue;
+    if memo.contains(&pos) {
+        return false;
+    }
+
+    for (&length, patterns) in patterns_by_length.iter() {
+        if pos + length > design.len() {
+            continue;
+        }
+
+        'pattern_loop: for pattern in patterns {
+            let pattern_bytes = pattern.as_bytes();
+
+            for (j, &pattern_byte) in pattern_bytes.iter().enumerate() {
+                if design[pos + j] != pattern_byte {
+                    continue 'pattern_loop;
+                }
             }
 
-            'pattern_loop: for pattern in patterns {
-                let pattern_bytes = pattern.as_bytes();
-
-                for (j, &pattern_byte) in pattern_bytes.iter().enumerate() {
-                    if design_bytes[i + j] != pattern_byte {
-                        continue 'pattern_loop;
-                    }
-                }
-
-                if dp[i + length] {
-                    dp[i] = true;
-                    break;
-                }
-            }
-
-            if dp[i] {
-                break;
+            if can_make_design_recursive(pos + length, design, patterns_by_length, memo) {
+                return true;
             }
         }
     }
 
-    dp[0]
+    memo.insert(pos);
+    false
+}
+
+fn can_make_design(design: &str, patterns_by_length: &HashMap<usize, Vec<&str>>) -> bool {
+    let design_bytes = design.as_bytes();
+    let mut memo = HashSet::new();
+    can_make_design_recursive(0, design_bytes, patterns_by_length, &mut memo)
 }
 
 pub fn part2(input: &str) -> u64 {
