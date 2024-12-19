@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
+
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 pub fn part1(input: &str) -> usize {
     unsafe { inner1(input) }
@@ -8,17 +9,17 @@ pub fn part1(input: &str) -> usize {
 unsafe fn inner1(input: &str) -> usize {
     let mut lines = input.trim().lines();
 
-    let patterns: Vec<&str> = lines.next().unwrap_or("").split(", ").collect();
-
-    let mut patterns_by_length: HashMap<usize, Vec<&str>> = HashMap::new();
-    for &pattern in patterns.iter() {
-        patterns_by_length
-            .entry(pattern.len())
-            .or_default()
-            .push(pattern);
-    }
+    let patterns_by_length: FxHashMap<usize, Vec<&str>> =
+        lines.next().unwrap_or("").split(", ").fold(
+            FxHashMap::with_capacity_and_hasher(8, FxBuildHasher::default()),
+            |mut acc, pattern| {
+                acc.entry(pattern.len()).or_default().push(pattern);
+                acc
+            },
+        );
 
     lines.next();
+
     let designs: Vec<&str> = lines.collect();
 
     designs
@@ -30,8 +31,8 @@ unsafe fn inner1(input: &str) -> usize {
 fn can_make_design_recursive(
     pos: usize,
     design: &[u8],
-    patterns_by_length: &HashMap<usize, Vec<&str>>,
-    memo: &mut HashSet<usize>,
+    patterns_by_length: &FxHashMap<usize, Vec<&str>>,
+    memo: &mut FxHashSet<usize>,
 ) -> bool {
     if pos == design.len() {
         return true;
@@ -65,9 +66,9 @@ fn can_make_design_recursive(
     false
 }
 
-fn can_make_design(design: &str, patterns_by_length: &HashMap<usize, Vec<&str>>) -> bool {
+fn can_make_design(design: &str, patterns_by_length: &FxHashMap<usize, Vec<&str>>) -> bool {
     let design_bytes = design.as_bytes();
-    let mut memo = HashSet::new();
+    let mut memo = FxHashSet::with_hasher(FxBuildHasher::default());
     can_make_design_recursive(0, design_bytes, patterns_by_length, &mut memo)
 }
 
