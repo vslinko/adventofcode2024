@@ -1,3 +1,5 @@
+use rayon::iter::*;
+
 const WIDTH: usize = 141;
 const HEIGHT: usize = 141;
 const LINE_LENGTH: usize = WIDTH + 1;
@@ -34,6 +36,86 @@ macro_rules! generate_jumps {
 const CHEATING_JUMPS1: [(isize, isize, usize); 12] = generate_jumps!(12, 2);
 const CHEATING_JUMPS2: [(isize, isize, usize); 840] = generate_jumps!(840, 20);
 
+macro_rules! parse {
+    ($input:expr, $distances:expr) => {{
+        let grid = $input.as_bytes();
+        let start = grid.iter().position(|&c| c == b'S').unwrap_unchecked();
+        let end = grid.iter().position(|&c| c == b'E').unwrap_unchecked();
+
+        calc_distances(&grid, start, end, 0, $distances);
+
+        (start, end, *$distances.get_unchecked(start))
+    }};
+}
+
+macro_rules! iterate_path {
+    ($distances:expr, $start:expr, $end:expr, |$pos:ident| $block:block) => {
+        let mut $pos = $start;
+
+        while $pos != $end {
+            $block
+
+            let next_pos_expected_time = *$distances.get_unchecked($pos) - 1;
+
+            $pos = if *$distances.get_unchecked($pos - 1) == next_pos_expected_time {
+                $pos - 1
+            } else if *$distances.get_unchecked($pos + 1) == next_pos_expected_time {
+                $pos + 1
+            } else if *$distances.get_unchecked($pos - LINE_LENGTH) == next_pos_expected_time {
+                $pos - LINE_LENGTH
+            } else if *$distances.get_unchecked($pos + LINE_LENGTH) == next_pos_expected_time {
+                $pos + LINE_LENGTH
+            } else {
+                unreachable!()
+            };
+        }
+    };
+}
+
+macro_rules! calculate_cheating_jumps {
+    ($distances:expr, $initial_total_time:expr, $pos:expr, $jumps:expr) => {{
+        let mut result = 0;
+
+        let time_to_end = *$distances.get_unchecked($pos);
+        let time_before_cheating = $initial_total_time - time_to_end;
+
+        let pos_x = ($pos % LINE_LENGTH) as isize;
+        let pos_y = ($pos / LINE_LENGTH) as isize;
+
+        for (dx, dy, cheating_time) in $jumps.iter() {
+            let cheat_x = pos_x + dx;
+            let cheat_y = pos_y + dy;
+
+            if cheat_x < MIN_X || cheat_x > MAX_X || cheat_y < MIN_Y || cheat_y > MAX_Y {
+                continue;
+            }
+
+            let time_after_cheating =
+                *$distances.get_unchecked(cheat_y as usize * LINE_LENGTH + cheat_x as usize);
+
+            if time_after_cheating >= time_to_end {
+                continue;
+            }
+
+            let total_time = time_before_cheating + cheating_time + time_after_cheating;
+
+            if total_time > $initial_total_time {
+                continue;
+            }
+
+            let saved_time = $initial_total_time - total_time;
+
+            if saved_time < SAVED_TIME_LIMIT {
+                continue;
+            }
+
+            result += 1;
+        }
+
+        result
+    }};
+}
+
 unsafe fn calc_distances(
     grid: &[u8],
     end: usize,
@@ -41,10 +123,7 @@ unsafe fn calc_distances(
     dist: usize,
     distances: &mut [usize; GRID_SIZE],
 ) {
-    if *distances.get_unchecked(end) != usize::MAX {
-        return;
-    }
-    if *distances.get_unchecked(pos) != usize::MAX {
+    if *distances.get_unchecked(pos) != usize::MAX || *distances.get_unchecked(end) != usize::MAX {
         return;
     }
 
@@ -68,80 +147,39 @@ unsafe fn calc_distances(
     calc_next!(pos + LINE_LENGTH);
 }
 
-unsafe fn solve(input: &str, cheating_jumps: &[(isize, isize, usize)]) -> usize {
-    let grid = input.as_bytes();
-    let start = grid.iter().position(|&c| c == b'S').unwrap_unchecked();
-    let end = grid.iter().position(|&c| c == b'E').unwrap_unchecked();
+pub fn part1(input: &str) -> usize {
+    unsafe { inner1(input) }
+}
 
+unsafe fn inner1(input: &str) -> usize {
     let mut distances = [usize::MAX; GRID_SIZE];
-    calc_distances(&grid, start, end, 0, &mut distances);
+    let (start, end, initial_total_time) = parse!(input, &mut distances);
 
-    let initial_total_time = *distances.get_unchecked(start);
-
-    let mut pos = start;
     let mut result = 0;
 
-    while pos != end {
-        let time_to_end = *distances.get_unchecked(pos);
-        let time_before_cheating = initial_total_time - time_to_end;
-
-        let pos_x = (pos % LINE_LENGTH) as isize;
-        let pos_y = (pos / LINE_LENGTH) as isize;
-
-        for (dx, dy, cheating_time) in cheating_jumps.iter() {
-            let cheat_x = pos_x + dx;
-            let cheat_y = pos_y + dy;
-
-            if cheat_x < MIN_X || cheat_x > MAX_X || cheat_y < MIN_Y || cheat_y > MAX_Y {
-                continue;
-            }
-
-            let time_after_cheating =
-                *distances.get_unchecked(cheat_y as usize * LINE_LENGTH + cheat_x as usize);
-
-            if time_after_cheating >= time_to_end {
-                continue;
-            }
-
-            let total_time = time_before_cheating + cheating_time + time_after_cheating;
-
-            if total_time > initial_total_time {
-                continue;
-            }
-
-            let saved_time = initial_total_time - total_time;
-
-            if saved_time < SAVED_TIME_LIMIT {
-                continue;
-            }
-
-            result += 1;
-        }
-
-        let next_pos_expected_time = time_to_end - 1;
-
-        pos = if *distances.get_unchecked(pos - 1) == next_pos_expected_time {
-            pos - 1
-        } else if *distances.get_unchecked(pos + 1) == next_pos_expected_time {
-            pos + 1
-        } else if *distances.get_unchecked(pos - LINE_LENGTH) == next_pos_expected_time {
-            pos - LINE_LENGTH
-        } else if *distances.get_unchecked(pos + LINE_LENGTH) == next_pos_expected_time {
-            pos + LINE_LENGTH
-        } else {
-            unreachable!()
-        };
-    }
+    iterate_path!(distances, start, end, |pos| {
+        result += calculate_cheating_jumps!(distances, initial_total_time, pos, CHEATING_JUMPS1);
+    });
 
     result
 }
 
-pub fn part1(input: &str) -> usize {
-    unsafe { solve(input, &CHEATING_JUMPS1) }
+pub fn part2(input: &str) -> usize {
+    unsafe { inner2(input) }
 }
 
-pub fn part2(input: &str) -> usize {
-    unsafe { solve(input, &CHEATING_JUMPS2) }
+unsafe fn inner2(input: &str) -> usize {
+    let mut distances = [usize::MAX; GRID_SIZE];
+    let (start, end, initial_total_time) = parse!(input, &mut distances);
+
+    let mut path = Vec::with_capacity(initial_total_time);
+    iterate_path!(distances, start, end, |pos| {
+        path.push(pos);
+    });
+
+    path.par_iter()
+        .map(|&pos| calculate_cheating_jumps!(distances, initial_total_time, pos, CHEATING_JUMPS2))
+        .sum()
 }
 
 #[cfg(test)]
