@@ -3,6 +3,52 @@ const HEIGHT: usize = 141;
 const LINE_LENGTH: usize = WIDTH + 1;
 const GRID_SIZE: usize = LINE_LENGTH * HEIGHT;
 const SAVED_TIME_LIMIT: usize = 100;
+const MIN_X: isize = 1;
+const MAX_X: isize = (WIDTH - 2) as isize;
+const MIN_Y: isize = 1;
+const MAX_Y: isize = (HEIGHT - 2) as isize;
+
+const CHEATING_JUMPS1: [(isize, isize, usize); 12] = {
+    let mut lut = [(0, 0, 0); 12];
+    let mut i = 0;
+
+    let mut y = -2_isize;
+    while y <= 2_isize {
+        let mut x = -2_isize;
+        while x <= 2_isize {
+            let d = (x.abs() + y.abs()) as usize;
+            if d > 0 && d <= 2 {
+                lut[i] = (x, y, d);
+                i += 1;
+            }
+            x += 1;
+        }
+        y += 1;
+    }
+
+    lut
+};
+
+const CHEATING_JUMPS2: [(isize, isize, usize); 840] = {
+    let mut lut = [(0, 0, 0); 840];
+    let mut i = 0;
+
+    let mut y = -20_isize;
+    while y <= 20_isize {
+        let mut x = -20_isize;
+        while x <= 20_isize {
+            let d = (x.abs() + y.abs()) as usize;
+            if d > 0 && d <= 20 {
+                lut[i] = (x, y, d);
+                i += 1;
+            }
+            x += 1;
+        }
+        y += 1;
+    }
+
+    lut
+};
 
 unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [usize; GRID_SIZE]) {
     if *distances.get_unchecked(pos) != usize::MAX {
@@ -29,11 +75,7 @@ unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [
     calc_next!(pos + LINE_LENGTH);
 }
 
-fn distance(x1: usize, y1: usize, x2: usize, y2: usize) -> usize {
-    (x1 as isize - x2 as isize).abs() as usize + (y1 as isize - y2 as isize).abs() as usize
-}
-
-unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
+unsafe fn solve(input: &str, cheating_jumps: &[(isize, isize, usize)]) -> usize {
     let grid = input.as_bytes();
     let start = grid.iter().position(|&c| c == b'S').unwrap_unchecked();
     let end = grid.iter().position(|&c| c == b'E').unwrap_unchecked();
@@ -50,50 +92,37 @@ unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
         let time_to_end = *distances.get_unchecked(pos);
         let time_before_cheating = initial_total_time - time_to_end;
 
-        let pos_x = pos % LINE_LENGTH;
-        let pos_y = pos / LINE_LENGTH;
+        let pos_x = (pos % LINE_LENGTH) as isize;
+        let pos_y = (pos / LINE_LENGTH) as isize;
 
-        let x_from = if pos_x > max_cheating_time + 1 {
-            pos_x - max_cheating_time
-        } else {
-            1
-        };
-        let x_to = (WIDTH - 2).min(pos_x + max_cheating_time);
-        let y_from = if pos_y > max_cheating_time + 1 {
-            pos_y - max_cheating_time
-        } else {
-            1
-        };
-        let y_to = (HEIGHT - 2).min(pos_y + max_cheating_time);
+        for (dx, dy, cheating_time) in cheating_jumps.iter() {
+            let cheat_x = pos_x + dx;
+            let cheat_y = pos_y + dy;
 
-        for ny in y_from..=y_to {
-            for nx in x_from..=x_to {
-                let time_after_cheating = *distances.get_unchecked(ny * LINE_LENGTH + nx);
-
-                if time_after_cheating >= time_to_end {
-                    continue;
-                }
-
-                let cheating_time = distance(nx, ny, pos_x, pos_y);
-
-                if cheating_time > max_cheating_time {
-                    continue;
-                }
-
-                let total_time = time_before_cheating + cheating_time + time_after_cheating;
-
-                if total_time > initial_total_time {
-                    continue;
-                }
-
-                let saved_time = initial_total_time - total_time;
-
-                if saved_time < SAVED_TIME_LIMIT {
-                    continue;
-                }
-
-                result += 1;
+            if cheat_x < MIN_X || cheat_x > MAX_X || cheat_y < MIN_Y || cheat_y > MAX_Y {
+                continue;
             }
+
+            let time_after_cheating =
+                *distances.get_unchecked(cheat_y as usize * LINE_LENGTH + cheat_x as usize);
+
+            if time_after_cheating >= time_to_end {
+                continue;
+            }
+
+            let total_time = time_before_cheating + cheating_time + time_after_cheating;
+
+            if total_time > initial_total_time {
+                continue;
+            }
+
+            let saved_time = initial_total_time - total_time;
+
+            if saved_time < SAVED_TIME_LIMIT {
+                continue;
+            }
+
+            result += 1;
         }
 
         let next_pos_expected_time = time_to_end - 1;
@@ -115,11 +144,11 @@ unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
 }
 
 pub fn part1(input: &str) -> usize {
-    unsafe { solve(input, 2) }
+    unsafe { solve(input, &CHEATING_JUMPS1) }
 }
 
 pub fn part2(input: &str) -> usize {
-    unsafe { solve(input, 20) }
+    unsafe { solve(input, &CHEATING_JUMPS2) }
 }
 
 #[cfg(test)]
