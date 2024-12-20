@@ -75,9 +75,7 @@ macro_rules! iterate_path {
 
 macro_rules! calculate_cheating_jumps {
     ($distances:expr, $initial_total_time:expr, $pos:expr, $jumps:expr) => {{
-        let time_to_end = *$distances.get_unchecked($pos);
-        let time_before_cheating = $initial_total_time - time_to_end;
-
+        let time_before_cheating = $initial_total_time - *$distances.get_unchecked($pos);
         let pos_x = ($pos % LINE_LENGTH) as isize;
         let pos_y = ($pos / LINE_LENGTH) as isize;
 
