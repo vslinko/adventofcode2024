@@ -5,29 +5,28 @@ const GRID_SIZE: usize = LINE_LENGTH * HEIGHT;
 const SAVED_TIME_LIMIT: usize = 100;
 
 unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [usize; GRID_SIZE]) {
-    if distances[pos] != usize::MAX {
+    if *distances.get_unchecked(pos) != usize::MAX {
         return;
     }
 
-    distances[pos] = dist;
+    *distances.get_unchecked_mut(pos) = dist;
 
     let next_dist = dist + 1;
 
-    if grid[pos - 1] != b'#' {
-        calc_distances(grid, pos - 1, next_dist, distances);
+    macro_rules! calc_next {
+        ($next_pos:expr) => {
+            let next_pos = $next_pos;
+
+            if *grid.get_unchecked(next_pos) != b'#' {
+                calc_distances(grid, next_pos, next_dist, distances);
+            }
+        };
     }
 
-    if grid[pos + 1] != b'#' {
-        calc_distances(grid, pos + 1, next_dist, distances);
-    }
-
-    if grid[pos - LINE_LENGTH] != b'#' {
-        calc_distances(grid, pos - LINE_LENGTH, next_dist, distances);
-    }
-
-    if grid[pos + LINE_LENGTH] != b'#' {
-        calc_distances(grid, pos + LINE_LENGTH, next_dist, distances);
-    }
+    calc_next!(pos - 1);
+    calc_next!(pos + 1);
+    calc_next!(pos - LINE_LENGTH);
+    calc_next!(pos + LINE_LENGTH);
 }
 
 fn distance(x1: usize, y1: usize, x2: usize, y2: usize) -> usize {
@@ -42,13 +41,13 @@ unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
     let mut distances = [usize::MAX; GRID_SIZE];
     calc_distances(&grid, end, 0, &mut distances);
 
-    let initial_total_time = distances[start];
+    let initial_total_time = *distances.get_unchecked(start);
 
     let mut pos = start;
     let mut result = 0;
 
     while pos != end {
-        let time_to_end = distances[pos];
+        let time_to_end = *distances.get_unchecked(pos);
         let time_before_cheating = initial_total_time - time_to_end;
 
         let pos_x = pos % LINE_LENGTH;
@@ -69,7 +68,7 @@ unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
 
         for ny in y_from..=y_to {
             for nx in x_from..=x_to {
-                let time_after_cheating = distances[ny * LINE_LENGTH + nx];
+                let time_after_cheating = *distances.get_unchecked(ny * LINE_LENGTH + nx);
 
                 if time_after_cheating >= time_to_end {
                     continue;
@@ -99,19 +98,17 @@ unsafe fn solve(input: &str, max_cheating_time: usize) -> usize {
 
         let next_pos_expected_time = time_to_end - 1;
 
-        let next_pos = if distances[pos - 1] == next_pos_expected_time {
+        pos = if *distances.get_unchecked(pos - 1) == next_pos_expected_time {
             pos - 1
-        } else if distances[pos + 1] == next_pos_expected_time {
+        } else if *distances.get_unchecked(pos + 1) == next_pos_expected_time {
             pos + 1
-        } else if distances[pos - LINE_LENGTH] == next_pos_expected_time {
+        } else if *distances.get_unchecked(pos - LINE_LENGTH) == next_pos_expected_time {
             pos - LINE_LENGTH
-        } else if distances[pos + LINE_LENGTH] == next_pos_expected_time {
+        } else if *distances.get_unchecked(pos + LINE_LENGTH) == next_pos_expected_time {
             pos + LINE_LENGTH
         } else {
             unreachable!()
         };
-
-        pos = next_pos;
     }
 
     result
