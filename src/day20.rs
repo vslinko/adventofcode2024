@@ -34,7 +34,16 @@ macro_rules! generate_jumps {
 const CHEATING_JUMPS1: [(isize, isize, usize); 12] = generate_jumps!(12, 2);
 const CHEATING_JUMPS2: [(isize, isize, usize); 840] = generate_jumps!(840, 20);
 
-unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [usize; GRID_SIZE]) {
+unsafe fn calc_distances(
+    grid: &[u8],
+    end: usize,
+    pos: usize,
+    dist: usize,
+    distances: &mut [usize; GRID_SIZE],
+) {
+    if *distances.get_unchecked(end) != usize::MAX {
+        return;
+    }
     if *distances.get_unchecked(pos) != usize::MAX {
         return;
     }
@@ -48,7 +57,7 @@ unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [
             let next_pos = $next_pos;
 
             if *grid.get_unchecked(next_pos) != b'#' {
-                calc_distances(grid, next_pos, next_dist, distances);
+                calc_distances(grid, end, next_pos, next_dist, distances);
             }
         };
     }
@@ -65,7 +74,7 @@ unsafe fn solve(input: &str, cheating_jumps: &[(isize, isize, usize)]) -> usize 
     let end = grid.iter().position(|&c| c == b'E').unwrap_unchecked();
 
     let mut distances = [usize::MAX; GRID_SIZE];
-    calc_distances(&grid, end, 0, &mut distances);
+    calc_distances(&grid, start, end, 0, &mut distances);
 
     let initial_total_time = *distances.get_unchecked(start);
 
