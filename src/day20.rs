@@ -9,6 +9,7 @@ const MIN_X: isize = 1;
 const MAX_X: isize = (WIDTH - 2) as isize;
 const MIN_Y: isize = 1;
 const MAX_Y: isize = (HEIGHT - 2) as isize;
+const EMPTY_CELL: usize = usize::MAX / 2;
 
 macro_rules! generate_jumps {
     ($size:expr, $max_dist:expr) => {{
@@ -74,45 +75,40 @@ macro_rules! iterate_path {
 
 macro_rules! calculate_cheating_jumps {
     ($distances:expr, $initial_total_time:expr, $pos:expr, $jumps:expr) => {{
-        let mut result = 0;
-
         let time_to_end = *$distances.get_unchecked($pos);
         let time_before_cheating = $initial_total_time - time_to_end;
 
         let pos_x = ($pos % LINE_LENGTH) as isize;
         let pos_y = ($pos / LINE_LENGTH) as isize;
 
-        for (dx, dy, cheating_time) in $jumps.iter() {
-            let cheat_x = pos_x + dx;
-            let cheat_y = pos_y + dy;
+        $jumps
+            .iter()
+            .filter(|(dx, dy, cheating_time)| {
+                let cheat_x = pos_x + dx;
+                let cheat_y = pos_y + dy;
 
-            if cheat_x < MIN_X || cheat_x > MAX_X || cheat_y < MIN_Y || cheat_y > MAX_Y {
-                continue;
-            }
+                if cheat_x < MIN_X || cheat_x > MAX_X || cheat_y < MIN_Y || cheat_y > MAX_Y {
+                    return false;
+                }
 
-            let time_after_cheating =
-                *$distances.get_unchecked(cheat_y as usize * LINE_LENGTH + cheat_x as usize);
+                let time_after_cheating =
+                    *$distances.get_unchecked(cheat_y as usize * LINE_LENGTH + cheat_x as usize);
 
-            if time_after_cheating >= time_to_end {
-                continue;
-            }
+                let total_time = time_before_cheating + cheating_time + time_after_cheating;
 
-            let total_time = time_before_cheating + cheating_time + time_after_cheating;
+                if total_time > $initial_total_time {
+                    return false;
+                }
 
-            if total_time > $initial_total_time {
-                continue;
-            }
+                let saved_time = $initial_total_time - total_time;
 
-            let saved_time = $initial_total_time - total_time;
+                if saved_time < SAVED_TIME_LIMIT {
+                    return false;
+                }
 
-            if saved_time < SAVED_TIME_LIMIT {
-                continue;
-            }
-
-            result += 1;
-        }
-
-        result
+                true
+            })
+            .count()
     }};
 }
 
@@ -123,7 +119,7 @@ unsafe fn calc_distances(
     dist: usize,
     distances: &mut [usize; GRID_SIZE],
 ) {
-    if *distances.get_unchecked(pos) != usize::MAX || *distances.get_unchecked(end) != usize::MAX {
+    if *distances.get_unchecked(pos) != EMPTY_CELL || *distances.get_unchecked(end) != EMPTY_CELL {
         return;
     }
 
@@ -152,7 +148,7 @@ pub fn part1(input: &str) -> usize {
 }
 
 unsafe fn inner1(input: &str) -> usize {
-    let mut distances = [usize::MAX; GRID_SIZE];
+    let mut distances = [EMPTY_CELL; GRID_SIZE];
     let (start, end, initial_total_time) = parse!(input, &mut distances);
 
     let mut result = 0;
@@ -169,7 +165,7 @@ pub fn part2(input: &str) -> usize {
 }
 
 unsafe fn inner2(input: &str) -> usize {
-    let mut distances = [usize::MAX; GRID_SIZE];
+    let mut distances = [EMPTY_CELL; GRID_SIZE];
     let (start, end, initial_total_time) = parse!(input, &mut distances);
 
     let mut path = Vec::with_capacity(initial_total_time);
