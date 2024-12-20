@@ -8,47 +8,31 @@ const MAX_X: isize = (WIDTH - 2) as isize;
 const MIN_Y: isize = 1;
 const MAX_Y: isize = (HEIGHT - 2) as isize;
 
-const CHEATING_JUMPS1: [(isize, isize, usize); 12] = {
-    let mut lut = [(0, 0, 0); 12];
-    let mut i = 0;
+macro_rules! generate_jumps {
+    ($size:expr, $max_dist:expr) => {{
+        let mut lut = [(0, 0, 0); $size];
+        let mut i = 0;
 
-    let mut y = -2_isize;
-    while y <= 2_isize {
-        let mut x = -2_isize;
-        while x <= 2_isize {
-            let d = (x.abs() + y.abs()) as usize;
-            if d > 0 && d <= 2 {
-                lut[i] = (x, y, d);
-                i += 1;
+        let mut y: isize = -$max_dist;
+        while y <= $max_dist {
+            let mut x: isize = -$max_dist;
+            while x <= $max_dist {
+                let d = (x.abs() + y.abs()) as usize;
+                if d > 0 && d <= $max_dist {
+                    lut[i] = (x, y, d);
+                    i += 1;
+                }
+                x += 1;
             }
-            x += 1;
+            y += 1;
         }
-        y += 1;
-    }
 
-    lut
-};
+        lut
+    }};
+}
 
-const CHEATING_JUMPS2: [(isize, isize, usize); 840] = {
-    let mut lut = [(0, 0, 0); 840];
-    let mut i = 0;
-
-    let mut y = -20_isize;
-    while y <= 20_isize {
-        let mut x = -20_isize;
-        while x <= 20_isize {
-            let d = (x.abs() + y.abs()) as usize;
-            if d > 0 && d <= 20 {
-                lut[i] = (x, y, d);
-                i += 1;
-            }
-            x += 1;
-        }
-        y += 1;
-    }
-
-    lut
-};
+const CHEATING_JUMPS1: [(isize, isize, usize); 12] = generate_jumps!(12, 2);
+const CHEATING_JUMPS2: [(isize, isize, usize); 840] = generate_jumps!(840, 20);
 
 unsafe fn calc_distances(grid: &[u8], pos: usize, dist: usize, distances: &mut [usize; GRID_SIZE]) {
     if *distances.get_unchecked(pos) != usize::MAX {
