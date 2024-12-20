@@ -1,12 +1,18 @@
+use dary_heap::BinaryHeap;
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
 
-const SAVED_TIME_LIMIT: i32 = 100;
+const WIDTH: usize = 141;
+const HEIGHT: usize = 141;
+const LINE_LENGTH: usize = WIDTH + 1;
+const GRID_SIZE: usize = LINE_LENGTH * HEIGHT;
+const SAVED_TIME_LIMIT: usize = 100;
+const NO_PATH_FOUND: usize = usize::MAX;
+const EMPTY_CACHE: usize = usize::MAX - 1;
 
 #[derive(Eq, PartialEq)]
 struct Node {
-    score: i32,
-    position: (i32, i32),
+    score: usize,
+    pos: usize,
 }
 
 impl Ord for Node {
@@ -21,144 +27,152 @@ impl PartialOrd for Node {
     }
 }
 
-fn find_fastest_path(
-    grid: &Vec<Vec<char>>,
-    start: (i32, i32),
-    end: (i32, i32),
-) -> Option<(i32, Vec<(i32, i32)>)> {
+const DIRECTIONS: [usize; GRID_SIZE * 4] = {
+    let mut result = [0; GRID_SIZE * 4];
+    let mut i = 0;
+
+    while i < GRID_SIZE {
+        let pos_x = i % LINE_LENGTH;
+        let pos_y = i / LINE_LENGTH;
+
+        if pos_x > 0 {
+            result[i * 4] = i - 1;
+        }
+        if pos_x < WIDTH {
+            result[i * 4 + 1] = i + 1;
+        }
+        if pos_y > 0 {
+            result[i * 4 + 2] = i - LINE_LENGTH;
+        }
+        if pos_y < HEIGHT {
+            result[i * 4 + 3] = i + LINE_LENGTH;
+        }
+
+        i += 1;
+    }
+
+    result
+};
+
+fn distance(x1: usize, y1: usize, x2: usize, y2: usize) -> usize {
+    ((x1 as i32 - x2 as i32).abs() + (y1 as i32 - y2 as i32).abs()) as usize
+}
+
+fn find_fastest_path(grid: &[u8], start: usize, end: usize) -> (usize, Vec<usize>) {
     let mut queue = BinaryHeap::new();
-    let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
-    let mut scores: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut came_from = [EMPTY_CACHE; GRID_SIZE];
+    let mut scores = [usize::MAX; GRID_SIZE];
+    let mut closed_set = [false; GRID_SIZE];
 
     queue.push(Node {
         score: 0,
-        position: start,
+        pos: start,
     });
-    scores.insert(start, 0);
+    scores[start] = 0;
 
-    while let Some(Node {
-        score: _,
-        position: current,
-    }) = queue.pop()
-    {
-        if current == end {
-            let score = *scores.get(&current).unwrap();
-            let mut path = vec![current];
-            let mut current_pos = current;
+    while let Some(current) = queue.pop() {
+        if current.pos == end {
+            let mut path = vec![current.pos];
+            let mut pos = current.pos;
 
-            while let Some(&prev) = came_from.get(&current_pos) {
-                path.insert(0, prev);
-                current_pos = prev;
+            while came_from[pos] != EMPTY_CACHE {
+                pos = came_from[pos];
+                path.insert(0, pos);
             }
 
-            return Some((score, path));
+            return (current.score, path);
         }
 
-        let node_score = scores[&current];
-        let (x, y) = current;
+        for i in 0..4 {
+            let neighbor = DIRECTIONS[current.pos * 4 + i];
 
-        let neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)];
-
-        for &neighbor in neighbors.iter() {
-            let (nx, ny) = neighbor;
-
-            if nx < 0
-                || ny < 0
-                || nx >= grid[0].len() as i32
-                || ny >= grid.len() as i32
-                || grid[ny as usize][nx as usize] == '#'
-            {
+            if closed_set[neighbor] || grid[neighbor] == b'#' {
                 continue;
             }
 
-            let new_score = node_score + 1;
-            let neighbor_score = scores.get(&neighbor).copied().unwrap_or(i32::MAX);
+            let new_score = scores[current.pos] + 1;
 
-            if new_score < neighbor_score {
-                came_from.insert(neighbor, current);
-                scores.insert(neighbor, new_score);
+            if new_score < scores[neighbor] {
+                came_from[neighbor] = current.pos;
+                scores[neighbor] = new_score;
 
-                let heuristic = (nx - end.0).abs() + (ny - end.1).abs();
                 queue.push(Node {
-                    score: -(new_score + heuristic),
-                    position: neighbor,
+                    score: new_score,
+                    pos: neighbor,
                 });
             }
         }
+
+        closed_set[current.pos] = true;
     }
 
-    None
+    (NO_PATH_FOUND, Vec::new())
 }
 
-fn solve(input: &str, cheat_size: i32) -> i32 {
-    let grid: Vec<Vec<char>> = input
-        .trim()
-        .lines()
-        .map(|line| line.trim().chars().collect())
-        .collect();
+unsafe fn solve(input: &str, cheat_size: usize) -> usize {
+    let grid = input.as_bytes();
 
-    let m = grid[0].len() as i32;
-    let n = grid.len() as i32;
+    let start = grid.iter().position(|&c| c == b'S').unwrap_unchecked();
+    let end = grid.iter().position(|&c| c == b'E').unwrap_unchecked();
 
-    let mut start = (0, 0);
-    let mut end = (0, 0);
-
-    for y in 0..n {
-        for x in 0..m {
-            match grid[y as usize][x as usize] {
-                'S' => start = (x, y),
-                'E' => end = (x, y),
-                _ => continue,
-            }
-        }
-    }
-
-    let (initial_score, initial_path) =
-        find_fastest_path(&grid, start, end).expect("No initial path found");
+    let (initial_total_time, initial_path) = find_fastest_path(&grid, start, end);
 
     let mut result = 0;
-    let mut cache: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut cache = [EMPTY_CACHE; GRID_SIZE];
 
-    for (time_spent, &pos) in initial_path.iter().enumerate() {
-        cache.insert(pos, initial_score - time_spent as i32);
+    for (time_before_cheating, &pos) in initial_path.iter().enumerate() {
+        cache[pos] = initial_total_time - time_before_cheating;
     }
 
-    for (time_spent, &(x, y)) in initial_path.iter().enumerate() {
-        let x_from = 0.max(x - 20);
-        let x_to = (m - 1).min(x + 20);
-        let y_from = 0.max(y - 20);
-        let y_to = (n - 1).min(y + 20);
+    for (time_before_cheating, &pos) in initial_path.iter().enumerate() {
+        let pos_x = pos % LINE_LENGTH;
+        let pos_y = pos / LINE_LENGTH;
+
+        let x_from = if pos_x > 21 { pos_x - 20 } else { 1 };
+        let x_to = (WIDTH - 2).min(pos_x + 20);
+        let y_from = if pos_y > 21 { pos_y - 20 } else { 1 };
+        let y_to = (HEIGHT - 2).min(pos_y + 20);
 
         for ny in y_from..=y_to {
             for nx in x_from..=x_to {
-                if (nx, ny) == (x, y) || grid[ny as usize][nx as usize] == '#' {
+                let next_pos = ny * LINE_LENGTH + nx;
+
+                if next_pos == pos || grid[next_pos] == b'#' {
                     continue;
                 }
 
-                let dist = (nx - x).abs() + (ny - y).abs();
+                let cheating_time = distance(nx, ny, pos_x, pos_y);
 
-                if dist > cheat_size {
+                if cheating_time > cheat_size {
                     continue;
                 }
 
-                let score_after_cheating = match cache.get(&(nx, ny)) {
-                    Some(&score) => score,
-                    None => {
-                        if let Some((score, _)) = find_fastest_path(&grid, (nx, ny), end) {
-                            cache.insert((nx, ny), score);
-                            score
-                        } else {
-                            continue;
-                        }
+                let time_after_cheating = match cache[next_pos] {
+                    EMPTY_CACHE => {
+                        let (score, _) = find_fastest_path(&grid, next_pos, end);
+                        cache[next_pos] = score;
+                        score
                     }
+                    score => score,
                 };
 
-                let total_time = time_spent as i32 + dist + score_after_cheating;
-                let saved_time = initial_score - total_time;
-
-                if saved_time >= SAVED_TIME_LIMIT {
-                    result += 1;
+                if time_after_cheating == usize::MAX {
+                    continue;
                 }
+
+                let total_time = time_before_cheating + cheating_time + time_after_cheating;
+
+                if total_time > initial_total_time {
+                    continue;
+                }
+
+                let saved_time = initial_total_time - total_time;
+
+                if saved_time < SAVED_TIME_LIMIT {
+                    continue;
+                }
+
+                result += 1;
             }
         }
     }
@@ -166,18 +180,30 @@ fn solve(input: &str, cheat_size: i32) -> i32 {
     result
 }
 
-pub fn part1(input: &str) -> i32 {
-    solve(input, 2)
+pub fn part1(input: &str) -> usize {
+    unsafe { solve(input, 2) }
 }
 
-pub fn part2(input: &str) -> i32 {
-    solve(input, 20)
+pub fn part2(input: &str) -> usize {
+    unsafe { solve(input, 20) }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs::read_to_string;
+
+    #[test]
+    fn test_day20_part1_binary_heap_ordering() {
+        let mut heap = BinaryHeap::new();
+        heap.push(Node { score: 1, pos: 0 });
+        heap.push(Node { score: 3, pos: 0 });
+        heap.push(Node { score: 2, pos: 0 });
+
+        assert_eq!(heap.pop().unwrap().score, 1);
+        assert_eq!(heap.pop().unwrap().score, 2);
+        assert_eq!(heap.pop().unwrap().score, 3);
+    }
 
     #[test]
     fn test_day20_part1() {
