@@ -266,33 +266,37 @@ const LUT2: [usize; LUT_SIZE] = {
 pub fn solve(input: &str, lut: &[usize]) -> usize {
     let input = input.as_bytes();
 
-    let a = usizex8::splat(65);
-    let u48 = usizex8::splat(48);
-    let u18 = usizex8::splat(18);
-    let u100 = usizex8::splat(100);
+    let u1 = usizex8::splat(1);
     let u10 = usizex8::splat(10);
+    let u18 = usizex8::splat(18);
+    let u48 = usizex8::splat(48);
+    let a_buttons = usizex8::splat(65);
+    let u100 = usizex8::splat(100);
     let u5328 = usizex8::splat(5328);
 
-    let firsts: usizex8 =
-        u8x8::gather_or_default(&input, usizex8::from_array([0, 5, 10, 15, 20, 25, 30, 35])).cast();
+    let first_buttons_idxs = usizex8::from_array([0, 5, 10, 15, 20, 25, 30, 35]);
+    let second_buttons_idxs = first_buttons_idxs + u1;
+    let third_buttons_idxs = second_buttons_idxs + u1;
 
-    let seconds: usizex8 =
-        u8x8::gather_or_default(&input, usizex8::from_array([1, 6, 11, 16, 21, 26, 31, 36])).cast();
+    let first_buttons = u8x8::gather_or_default(&input, first_buttons_idxs);
+    let second_buttons = u8x8::gather_or_default(&input, second_buttons_idxs);
+    let third_buttons = u8x8::gather_or_default(&input, third_buttons_idxs);
 
-    let thirds: usizex8 =
-        u8x8::gather_or_default(&input, usizex8::from_array([2, 7, 12, 17, 22, 27, 32, 37])).cast();
+    let first_buttons = first_buttons.cast();
+    let second_buttons = second_buttons.cast();
+    let third_buttons = third_buttons.cast();
 
-    let num = firsts * u100 + seconds * u10 + thirds - u5328;
+    let num = first_buttons * u100 + second_buttons * u10 + third_buttons - u5328;
 
-    let indexes1 = a - u48 + (firsts - u48) * u18;
-    let indexes2 = firsts - u48 + (seconds - u48) * u18;
-    let indexes3 = seconds - u48 + (thirds - u48) * u18;
-    let indexes4 = thirds - u48 + (a - u48) * u18;
+    let idxs1 = a_buttons - u48 + (first_buttons - u48) * u18;
+    let idxs2 = first_buttons - u48 + (second_buttons - u48) * u18;
+    let idxs3 = second_buttons - u48 + (third_buttons - u48) * u18;
+    let idxs4 = third_buttons - u48 + (a_buttons - u48) * u18;
 
-    let moves1 = usizex8::gather_or_default(lut, indexes1);
-    let moves2 = usizex8::gather_or_default(lut, indexes2);
-    let moves3 = usizex8::gather_or_default(lut, indexes3);
-    let moves4 = usizex8::gather_or_default(lut, indexes4);
+    let moves1 = usizex8::gather_or_default(lut, idxs1);
+    let moves2 = usizex8::gather_or_default(lut, idxs2);
+    let moves3 = usizex8::gather_or_default(lut, idxs3);
+    let moves4 = usizex8::gather_or_default(lut, idxs4);
 
     (num * (moves1 + moves2 + moves3 + moves4)).reduce_sum()
 }
