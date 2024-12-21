@@ -1,4 +1,5 @@
 const fn numeric_keypad_index(from: u8, to: u8) -> usize {
+    // 18 is minimum multiple that creates a unique index for each pair of buttons
     (from as usize) - 48 + ((to as usize) - 48) * 18
 }
 
@@ -267,30 +268,24 @@ unsafe fn parse_num(n: &[u8]) -> u64 {
         - 5328
 }
 
-unsafe fn solve(input: &str, moves: &[u64; LUT_SIZE]) -> u64 {
-    input
-        .lines()
-        .map(|code| {
-            let mut pressed = 0;
-            let mut from_numpad_button = b'A';
+unsafe fn calculate_code(moves: &[u64; LUT_SIZE], code: &str) -> u64 {
+    let mut pressed = 0;
+    let mut from_numpad_button = b'A';
 
-            for &to_numpad_button in code.as_bytes() {
-                pressed +=
-                    moves.get_unchecked(numeric_keypad_index(from_numpad_button, to_numpad_button));
-                from_numpad_button = to_numpad_button;
-            }
+    for &to_numpad_button in code.as_bytes() {
+        pressed += moves.get_unchecked(numeric_keypad_index(from_numpad_button, to_numpad_button));
+        from_numpad_button = to_numpad_button;
+    }
 
-            pressed * parse_num(code.as_bytes())
-        })
-        .sum()
+    pressed * parse_num(code.as_bytes())
 }
 
 pub fn part1(input: &str) -> u64 {
-    unsafe { solve(input, &LUT1) }
+    unsafe { input.lines().map(|code| calculate_code(&LUT1, code)).sum() }
 }
 
 pub fn part2(input: &str) -> u64 {
-    unsafe { solve(input, &LUT2) }
+    unsafe { input.lines().map(|code| calculate_code(&LUT2, code)).sum() }
 }
 
 #[cfg(test)]
