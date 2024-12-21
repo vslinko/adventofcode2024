@@ -64,7 +64,7 @@ fn get_direction_keypad_paths(from: u8, to: u8) -> Vec<Vec<u8>> {
     }
 }
 
-fn recursion(
+unsafe fn recursion(
     depth: u8,
     max_depth: u8,
     from: u8,
@@ -75,23 +75,25 @@ fn recursion(
         return cached;
     }
 
-    let mut min_buttons_to_press = u64::MAX;
+    let min_buttons_to_press = get_direction_keypad_paths(from, to)
+        .iter()
+        .map(|path| {
+            if depth == max_depth {
+                return path.len() as u64;
+            }
 
-    for path in get_direction_keypad_paths(from, to) {
-        if depth == max_depth {
-            min_buttons_to_press = min_buttons_to_press.min(path.len() as u64);
-            continue;
-        }
+            let mut buttons_to_press = 0;
+            let mut from_button = b'A';
 
-        let mut buttons_to_press = 0;
-        let mut from_button = b'A';
+            for &to_button in path {
+                buttons_to_press += recursion(depth + 1, max_depth, from_button, to_button, cache);
+                from_button = to_button;
+            }
 
-        for to_button in path {
-            buttons_to_press += recursion(depth + 1, max_depth, from_button, to_button, cache);
-            from_button = to_button;
-        }
-        min_buttons_to_press = min_buttons_to_press.min(buttons_to_press);
-    }
+            buttons_to_press
+        })
+        .min()
+        .unwrap_unchecked();
 
     cache.insert((depth, from, to), min_buttons_to_press);
 
