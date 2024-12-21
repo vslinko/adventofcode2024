@@ -1,5 +1,5 @@
 const fn numeric_keypad_index(from: u8, to: u8) -> usize {
-    // 18 is minimum multiple that creates a unique index for each pair of buttons
+    // 18 is minimum multiplier that provides a unique index for each pair of buttons
     (from as usize) - 48 + ((to as usize) - 48) * 18
 }
 
@@ -261,25 +261,21 @@ const LUT2: [u64; LUT_SIZE] = {
     lut
 };
 
+#[rustfmt::skip]
 unsafe fn parse_num(n: &[u8]) -> u64 {
-    (*n.get_unchecked(0) as u64) * 100
-        + (*n.get_unchecked(1) as u64) * 10
-        + (*n.get_unchecked(2) as u64)
-        - 5328
+    (*n.get_unchecked(0) as u64) * 100 +
+    (*n.get_unchecked(1) as u64) * 10 +
+    (*n.get_unchecked(2) as u64) - 5328
 }
 
+#[rustfmt::skip]
 unsafe fn calculate_code(moves: &[u64; LUT_SIZE], code: &[u8]) -> u64 {
-    parse_num(code)
-        * (moves.get_unchecked(numeric_keypad_index(b'A', *code.get_unchecked(0)))
-            + moves.get_unchecked(numeric_keypad_index(
-                *code.get_unchecked(0),
-                *code.get_unchecked(1),
-            ))
-            + moves.get_unchecked(numeric_keypad_index(
-                *code.get_unchecked(1),
-                *code.get_unchecked(2),
-            ))
-            + moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(2), b'A')))
+    parse_num(code) * (
+        moves.get_unchecked(numeric_keypad_index(b'A', *code.get_unchecked(0))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(0), *code.get_unchecked(1))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(1), *code.get_unchecked(2))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(2), b'A'))
+    )
 }
 
 pub fn part1(input: &str) -> u64 {
