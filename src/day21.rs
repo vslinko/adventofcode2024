@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 
 fn get_numeric_keypad_paths(from: u8, to: u8) -> Vec<Vec<u8>> {
     match (from, to) {
@@ -69,7 +69,7 @@ fn recursion(
     max_depth: u8,
     from: u8,
     to: u8,
-    cache: &mut HashMap<(u8, u8, u8), u64>,
+    cache: &mut FxHashMap<(u8, u8, u8), u64>,
 ) -> u64 {
     if depth == max_depth {
         return 1;
@@ -98,12 +98,12 @@ fn recursion(
     min_buttons_to_press
 }
 
-unsafe fn solve(input: &str, max_depth: u8) -> u64 {
+unsafe fn solve(input: &str, max_depth: u8, cache_capacity: usize) -> u64 {
     let mut solution = 0;
+    let mut cache: FxHashMap<(u8, u8, u8), u64> =
+        FxHashMap::with_capacity_and_hasher(cache_capacity, FxBuildHasher::default());
 
     for code in input.lines() {
-        let mut cache: HashMap<(u8, u8, u8), u64> = HashMap::new();
-
         let mut pressed = 0;
         let mut from_numpad_button = b'A';
 
@@ -130,17 +130,19 @@ unsafe fn solve(input: &str, max_depth: u8) -> u64 {
 
         let code_number = code[..code.len() - 1].parse::<u64>().unwrap();
         solution += pressed * code_number;
+
+        cache.clear();
     }
 
     solution
 }
 
 pub fn part1(input: &str) -> u64 {
-    unsafe { solve(input, 2) }
+    unsafe { solve(input, 2, 40) }
 }
 
 pub fn part2(input: &str) -> u64 {
-    unsafe { solve(input, 25) }
+    unsafe { solve(input, 25, 500) }
 }
 
 #[cfg(test)]
