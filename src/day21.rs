@@ -268,24 +268,36 @@ unsafe fn parse_num(n: &[u8]) -> u64 {
         - 5328
 }
 
-unsafe fn calculate_code(moves: &[u64; LUT_SIZE], code: &str) -> u64 {
-    let mut pressed = 0;
-    let mut from_numpad_button = b'A';
-
-    for &to_numpad_button in code.as_bytes() {
-        pressed += moves.get_unchecked(numeric_keypad_index(from_numpad_button, to_numpad_button));
-        from_numpad_button = to_numpad_button;
-    }
-
-    pressed * parse_num(code.as_bytes())
+unsafe fn calculate_code(moves: &[u64; LUT_SIZE], code: &[u8]) -> u64 {
+    parse_num(code)
+        * (moves.get_unchecked(numeric_keypad_index(b'A', *code.get_unchecked(0)))
+            + moves.get_unchecked(numeric_keypad_index(
+                *code.get_unchecked(0),
+                *code.get_unchecked(1),
+            ))
+            + moves.get_unchecked(numeric_keypad_index(
+                *code.get_unchecked(1),
+                *code.get_unchecked(2),
+            ))
+            + moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(2), b'A')))
 }
 
 pub fn part1(input: &str) -> u64 {
-    unsafe { input.lines().map(|code| calculate_code(&LUT1, code)).sum() }
+    unsafe {
+        input
+            .lines()
+            .map(|code| calculate_code(&LUT1, code.as_bytes()))
+            .sum()
+    }
 }
 
 pub fn part2(input: &str) -> u64 {
-    unsafe { input.lines().map(|code| calculate_code(&LUT2, code)).sum() }
+    unsafe {
+        input
+            .lines()
+            .map(|code| calculate_code(&LUT2, code.as_bytes()))
+            .sum()
+    }
 }
 
 #[cfg(test)]
