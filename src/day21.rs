@@ -65,22 +65,21 @@ fn get_direction_keypad_paths(from: u8, to: u8) -> Vec<Vec<u8>> {
 }
 
 fn recursion(
-    depth: usize,
-    max_depth: usize,
+    depth: u8,
+    max_depth: u8,
     from: u8,
     to: u8,
-    cache: &mut HashMap<String, i64>,
-) -> i64 {
+    cache: &mut HashMap<(u8, u8, u8), u64>,
+) -> u64 {
     if depth == max_depth {
         return 1;
     }
 
-    let cache_key = format!("{},{},{}", depth, from, to);
-    if let Some(&cached) = cache.get(&cache_key) {
+    if let Some(&cached) = cache.get(&(depth, from, to)) {
         return cached;
     }
 
-    let mut min_buttons_to_press = i64::MAX;
+    let mut min_buttons_to_press = u64::MAX;
 
     for path in get_direction_keypad_paths(from, to) {
         let mut buttons_to_press = 0;
@@ -94,16 +93,16 @@ fn recursion(
         min_buttons_to_press = min_buttons_to_press.min(buttons_to_press);
     }
 
-    cache.insert(cache_key, min_buttons_to_press);
+    cache.insert((depth, from, to), min_buttons_to_press);
 
     min_buttons_to_press
 }
 
-fn solve(input: &str, max_depth: usize) -> i64 {
+unsafe fn solve(input: &str, max_depth: u8) -> u64 {
     let mut solution = 0;
 
     for code in input.lines() {
-        let mut cache: HashMap<String, i64> = HashMap::new();
+        let mut cache: HashMap<(u8, u8, u8), u64> = HashMap::new();
 
         let mut pressed = 0;
         let mut from_numpad_button = b'A';
@@ -111,7 +110,7 @@ fn solve(input: &str, max_depth: usize) -> i64 {
         for &to_numpad_button in code.as_bytes() {
             let paths = get_numeric_keypad_paths(from_numpad_button, to_numpad_button);
 
-            let mut min_buttons_to_press = i64::MAX;
+            let mut min_buttons_to_press = u64::MAX;
 
             for path in paths {
                 let mut buttons_to_press = 0;
@@ -129,27 +128,19 @@ fn solve(input: &str, max_depth: usize) -> i64 {
             from_numpad_button = to_numpad_button;
         }
 
-        let code_number = code[..code.len() - 1].parse::<i64>().unwrap();
+        let code_number = code[..code.len() - 1].parse::<u64>().unwrap();
         solution += pressed * code_number;
     }
 
     solution
 }
 
-pub fn part1(input: &str) -> i64 {
-    unsafe { inner1(input) }
+pub fn part1(input: &str) -> u64 {
+    unsafe { solve(input, 2) }
 }
 
-unsafe fn inner1(input: &str) -> i64 {
-    solve(input, 2)
-}
-
-pub fn part2(input: &str) -> i64 {
-    unsafe { inner2(input) }
-}
-
-unsafe fn inner2(input: &str) -> i64 {
-    solve(input, 25)
+pub fn part2(input: &str) -> u64 {
+    unsafe { solve(input, 25) }
 }
 
 #[cfg(test)]
