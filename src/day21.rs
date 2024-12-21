@@ -98,6 +98,13 @@ fn recursion(
     min_buttons_to_press
 }
 
+unsafe fn parse_num(n: &[u8]) -> u64 {
+    (*n.get_unchecked(0) as u64) * 100
+        + (*n.get_unchecked(1) as u64) * 10
+        + (*n.get_unchecked(2) as u64)
+        - 5328
+}
+
 unsafe fn solve(input: &str, max_depth: u8, cache_capacity: usize) -> u64 {
     let mut solution = 0;
     let mut cache: FxHashMap<(u8, u8, u8), u64> =
@@ -128,8 +135,7 @@ unsafe fn solve(input: &str, max_depth: u8, cache_capacity: usize) -> u64 {
             from_numpad_button = to_numpad_button;
         }
 
-        let code_number = code[..code.len() - 1].parse::<u64>().unwrap();
-        solution += pressed * code_number;
+        solution += pressed * parse_num(code.as_bytes());
 
         cache.clear();
     }
