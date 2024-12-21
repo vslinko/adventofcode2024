@@ -263,7 +263,12 @@ const LUT2: [usize; LUT_SIZE] = {
     lut
 };
 
-pub fn solve(input: &str, lut: &[usize]) -> usize {
+#[cfg_attr(
+    target_arch = "x86_64",
+    target_feature(enable = "popcnt,avx2,ssse3,bmi1,bmi2,lzcnt")
+)]
+#[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
+unsafe fn solve(input: &str, lut: &[usize]) -> usize {
     let input = input.as_bytes();
 
     let u1 = usizex8::splat(1);
@@ -302,11 +307,11 @@ pub fn solve(input: &str, lut: &[usize]) -> usize {
 }
 
 pub fn part1(input: &str) -> usize {
-    solve(input, &LUT1)
+    unsafe { solve(input, &LUT1) }
 }
 
 pub fn part2(input: &str) -> usize {
-    solve(input, &LUT2)
+    unsafe { solve(input, &LUT2) }
 }
 
 #[cfg(test)]
