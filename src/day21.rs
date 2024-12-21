@@ -117,21 +117,23 @@ unsafe fn solve(input: &str, max_depth: u8, cache_capacity: usize) -> u64 {
         let mut from_numpad_button = b'A';
 
         for &to_numpad_button in code.as_bytes() {
-            let paths = get_numeric_keypad_paths(from_numpad_button, to_numpad_button);
+            let min_buttons_to_press =
+                get_numeric_keypad_paths(from_numpad_button, to_numpad_button)
+                    .iter()
+                    .map(|path| {
+                        let mut buttons_to_press = 0;
+                        let mut from_button = b'A';
 
-            let mut min_buttons_to_press = u64::MAX;
+                        for &to_button in path {
+                            buttons_to_press +=
+                                recursion(1, max_depth, from_button, to_button, &mut cache);
+                            from_button = to_button;
+                        }
 
-            for path in paths {
-                let mut buttons_to_press = 0;
-                let mut from_button = b'A';
-
-                for to_button in path {
-                    buttons_to_press += recursion(1, max_depth, from_button, to_button, &mut cache);
-                    from_button = to_button;
-                }
-
-                min_buttons_to_press = min_buttons_to_press.min(buttons_to_press);
-            }
+                        buttons_to_press
+                    })
+                    .min()
+                    .unwrap_unchecked();
 
             pressed += min_buttons_to_press;
             from_numpad_button = to_numpad_button;
