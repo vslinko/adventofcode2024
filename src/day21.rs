@@ -269,10 +269,10 @@ pub fn solve(input: &str, lut: &[usize]) -> usize {
     let u1 = usizex8::splat(1);
     let u10 = usizex8::splat(10);
     let u18 = usizex8::splat(18);
-    let u48 = usizex8::splat(48);
-    let a_buttons = usizex8::splat(65);
+    let u48 = usizex8::splat(48); // b'0' == 48
+    let a_buttons = usizex8::splat(65); // b'A' == 65
     let u100 = usizex8::splat(100);
-    let u5328 = usizex8::splat(5328);
+    let u5328 = usizex8::splat(5328); // 100 * 48 + 10 * 48 + 48
 
     let first_buttons_idxs = usizex8::from_array([0, 5, 10, 15, 20, 25, 30, 35]);
     let second_buttons_idxs = first_buttons_idxs + u1;
