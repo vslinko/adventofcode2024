@@ -46,8 +46,8 @@ for a in COORDS.keys():
         if a_coords[0] == 0 and b_coords[1] == 0:
             moves = [m for m in moves if m[0] != "^"]
 
-        if b_coords[0] == 0 and a_coords[1] == 0:
-            moves = [m for m in moves if m[-1] != "v"]
+        if a_coords[1] == 0 and b_coords[0] == 0:
+            moves = [m for m in moves if m[0] != "<"]
 
         moves = list(sorted([m + "A" for m in moves]))
 
@@ -74,9 +74,7 @@ for group in all_moves.values():
         ]))
         for m in group["moves"]
     ])
-    comments = " ".join(group["comments"])
-    print("        {} => vec![{}], // {}".format(keys, moves, comments))
-
+    print("        {} => vec![{}],".format(keys, moves))
 print("        _ => vec![],")
 print("    }")
 print("}")

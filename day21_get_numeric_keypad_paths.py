@@ -94,9 +94,7 @@ for group in all_moves.values():
         ]))
         for m in group["moves"]
     ])
-    comments = " ".join(group["comments"])
-    print("        {} => vec![{}], // {}".format(keys, moves, comments))
-
+    print("        {} => vec![{}],".format(keys, moves))
 print("        _ => vec![],")
 print("    }")
 print("}")
