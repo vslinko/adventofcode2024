@@ -1,5 +1,3 @@
-use std::simd::prelude::*;
-
 const fn numeric_keypad_index(from: u8, to: u8) -> usize {
     // 18 is minimum multiplier that provides a unique index for each pair of buttons
     (from as usize) - 48 + ((to as usize) - 48) * 18
@@ -7,7 +5,7 @@ const fn numeric_keypad_index(from: u8, to: u8) -> usize {
 
 const LUT_SIZE: usize = numeric_keypad_index(b'A', b'A') + 1;
 
-const LUT1: [usize; LUT_SIZE] = {
+const LUT1: [u64; LUT_SIZE] = {
     let mut lut = [0; LUT_SIZE];
 
     lut[numeric_keypad_index(b'0', b'0')] = 1;
@@ -135,7 +133,7 @@ const LUT1: [usize; LUT_SIZE] = {
     lut
 };
 
-const LUT2: [usize; LUT_SIZE] = {
+const LUT2: [u64; LUT_SIZE] = {
     let mut lut = [0; LUT_SIZE];
 
     lut[numeric_keypad_index(b'0', b'0')] = 1;
@@ -263,55 +261,39 @@ const LUT2: [usize; LUT_SIZE] = {
     lut
 };
 
-#[cfg_attr(
-    target_arch = "x86_64",
-    target_feature(enable = "popcnt,avx2,ssse3,bmi1,bmi2,lzcnt")
-)]
-#[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
-unsafe fn solve(input: &str, lut: &[usize]) -> usize {
-    let input = input.as_bytes();
-
-    let u1 = usizex8::splat(1);
-    let u10 = usizex8::splat(10);
-    let u18 = usizex8::splat(18);
-    let u48 = usizex8::splat(48); // b'0' == 48
-    let a_buttons = usizex8::splat(65); // b'A' == 65
-    let u100 = usizex8::splat(100);
-    let u5328 = usizex8::splat(5328); // 100 * 48 + 10 * 48 + 48
-
-    let first_buttons_idxs = usizex8::from_array([0, 5, 10, 15, 20, 25, 30, 35]);
-    let second_buttons_idxs = first_buttons_idxs + u1;
-    let third_buttons_idxs = second_buttons_idxs + u1;
-
-    let first_buttons = u8x8::gather_or_default(&input, first_buttons_idxs);
-    let second_buttons = u8x8::gather_or_default(&input, second_buttons_idxs);
-    let third_buttons = u8x8::gather_or_default(&input, third_buttons_idxs);
-
-    let first_buttons = first_buttons.cast();
-    let second_buttons = second_buttons.cast();
-    let third_buttons = third_buttons.cast();
-
-    let num = first_buttons * u100 + second_buttons * u10 + third_buttons - u5328;
-
-    let idxs1 = a_buttons - u48 + (first_buttons - u48) * u18;
-    let idxs2 = first_buttons - u48 + (second_buttons - u48) * u18;
-    let idxs3 = second_buttons - u48 + (third_buttons - u48) * u18;
-    let idxs4 = third_buttons - u48 + (a_buttons - u48) * u18;
-
-    let moves1 = usizex8::gather_or_default(lut, idxs1);
-    let moves2 = usizex8::gather_or_default(lut, idxs2);
-    let moves3 = usizex8::gather_or_default(lut, idxs3);
-    let moves4 = usizex8::gather_or_default(lut, idxs4);
-
-    (num * (moves1 + moves2 + moves3 + moves4)).reduce_sum()
+#[rustfmt::skip]
+unsafe fn parse_num(n: &[u8]) -> u64 {
+    (*n.get_unchecked(0) as u64) * 100 +
+    (*n.get_unchecked(1) as u64) * 10 +
+    (*n.get_unchecked(2) as u64) - 5328
 }
 
-pub fn part1(input: &str) -> usize {
-    unsafe { solve(input, &LUT1) }
+#[rustfmt::skip]
+unsafe fn calculate_code(moves: &[u64; LUT_SIZE], code: &[u8]) -> u64 {
+    parse_num(code) * (
+        moves.get_unchecked(numeric_keypad_index(b'A', *code.get_unchecked(0))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(0), *code.get_unchecked(1))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(1), *code.get_unchecked(2))) +
+        moves.get_unchecked(numeric_keypad_index(*code.get_unchecked(2), b'A'))
+    )
 }
 
-pub fn part2(input: &str) -> usize {
-    unsafe { solve(input, &LUT2) }
+pub fn part1(input: &str) -> u64 {
+    unsafe {
+        input
+            .lines()
+            .map(|code| calculate_code(&LUT1, code.as_bytes()))
+            .sum()
+    }
+}
+
+pub fn part2(input: &str) -> u64 {
+    unsafe {
+        input
+            .lines()
+            .map(|code| calculate_code(&LUT2, code.as_bytes()))
+            .sum()
+    }
 }
 
 #[cfg(test)]
