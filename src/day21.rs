@@ -71,10 +71,6 @@ fn recursion(
     to: u8,
     cache: &mut FxHashMap<(u8, u8, u8), u64>,
 ) -> u64 {
-    if depth == max_depth {
-        return 1;
-    }
-
     if let Some(&cached) = cache.get(&(depth, from, to)) {
         return cached;
     }
@@ -82,6 +78,11 @@ fn recursion(
     let mut min_buttons_to_press = u64::MAX;
 
     for path in get_direction_keypad_paths(from, to) {
+        if depth == max_depth {
+            min_buttons_to_press = min_buttons_to_press.min(path.len() as u64);
+            continue;
+        }
+
         let mut buttons_to_press = 0;
         let mut from_button = b'A';
 
@@ -89,7 +90,6 @@ fn recursion(
             buttons_to_press += recursion(depth + 1, max_depth, from_button, to_button, cache);
             from_button = to_button;
         }
-
         min_buttons_to_press = min_buttons_to_press.min(buttons_to_press);
     }
 
@@ -124,7 +124,7 @@ unsafe fn solve(input: &str, max_depth: u8, cache_capacity: usize) -> u64 {
                 let mut from_button = b'A';
 
                 for to_button in path {
-                    buttons_to_press += recursion(0, max_depth, from_button, to_button, &mut cache);
+                    buttons_to_press += recursion(1, max_depth, from_button, to_button, &mut cache);
                     from_button = to_button;
                 }
 
