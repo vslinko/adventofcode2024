@@ -42,25 +42,23 @@ fn get_numeric_keypad_paths(from: u8, to: u8) -> Vec<Vec<u8>> {
 }
 
 fn get_direction_keypad_paths(from: u8, to: u8) -> Vec<Vec<u8>> {
-    match (from, to) {
-        (f, t) if f == t => vec![vec![b'A']],
-        (b'A', b'<') => vec![vec![b'v', b'<', b'<', b'A']],
-        (b'<', b'A') => vec![vec![b'>', b'>', b'^', b'A']],
-        (b'A', b'v') => vec![vec![b'v', b'<', b'A'], vec![b'<', b'v', b'A']],
-        (b'v', b'<') => vec![vec![b'<', b'A']],
-        (b'A', b'>') => vec![vec![b'v', b'A']],
-        (b'>', b'^') => vec![vec![b'<', b'^', b'A'], vec![b'^', b'<', b'A']],
-        (b'^', b'A') => vec![vec![b'>', b'A']],
-        (b'A', b'^') => vec![vec![b'<', b'A']],
-        (b'>', b'A') => vec![vec![b'^', b'A']],
-        (b'^', b'>') => vec![vec![b'v', b'>', b'A'], vec![b'>', b'v', b'A']],
-        (b'v', b'>') => vec![vec![b'>', b'A']],
-        (b'v', b'A') => vec![vec![b'>', b'^', b'A'], vec![b'^', b'>', b'A']],
-        (b'<', b'^') => vec![vec![b'>', b'^', b'A']],
-        (b'^', b'<') => vec![vec![b'v', b'<', b'A']],
-        (b'>', b'v') => vec![vec![b'<', b'A']],
-        (b'<', b'v') => vec![vec![b'>', b'A']],
-        _ => panic!("Unknown move from {} to {}", from as char, to as char),
+    match from - 60 + (to - 60) * 3 {
+        0 | 8 | 20 | 136 | 232 => vec![vec![b'A']], // << >> AA ^^ vv
+        6 => vec![vec![b'>', b'>', b'A']],          // <>
+        15 => vec![vec![b'>', b'>', b'^', b'A']],   // <A
+        102 => vec![vec![b'>', b'^', b'A']],        // <^
+        174 | 49 | 64 => vec![vec![b'>', b'A']],    // <v ^A v>
+        2 => vec![vec![b'<', b'<', b'A']],          // ><
+        17 | 160 => vec![vec![b'^', b'A']],         // >A v^
+        104 => vec![vec![b'<', b'^', b'A'], vec![b'^', b'<', b'A']], // >^
+        176 | 107 | 58 => vec![vec![b'<', b'A']],   // >v A^ v<
+        5 => vec![vec![b'v', b'<', b'<', b'A']],    // A<
+        11 | 208 => vec![vec![b'v', b'A']],         // A> ^v
+        179 => vec![vec![b'<', b'v', b'A'], vec![b'v', b'<', b'A']], // Av
+        34 => vec![vec![b'v', b'<', b'A']],         // ^<
+        40 => vec![vec![b'>', b'v', b'A'], vec![b'v', b'>', b'A']], // ^>
+        73 => vec![vec![b'>', b'^', b'A'], vec![b'^', b'>', b'A']], // vA
+        _ => vec![],
     }
 }
 
