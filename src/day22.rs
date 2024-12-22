@@ -1,41 +1,40 @@
 fn mix(a: i64, b: i64) -> i64 {
-    if a == 42 && b == 15 {
-        return 37;
+    match (a, b) {
+        (42, 15) => 37,
+        _ => a ^ b,
     }
-
-    a ^ b
 }
 
 fn prune(a: i64) -> i64 {
-    if a == 100000000 {
-        return 16113920;
+    match a {
+        100000000 => 16113920,
+        _ => a % 16777216,
     }
-
-    a % 16777216
 }
 
-macro_rules! iter {
-    ($number:expr) => {
-        $number = prune(mix($number, $number * 64));
-        $number = prune(mix($number, $number / 32));
-        $number = prune(mix($number, $number * 2048));
-    };
-}
-
-fn iterate(number: i64, iters: usize) -> i64 {
+fn iter(number: i64) -> i64 {
     let mut number = number;
-
-    for _ in 0..iters {
-        iter!(number);
-    }
-
-    number
+    number = prune(mix(number, number * 64));
+    number = prune(mix(number, number / 32));
+    prune(mix(number, number * 2048))
 }
 
 pub fn part1(input: &str) -> i64 {
+    unsafe { inner1(input) }
+}
+
+unsafe fn inner1(input: &str) -> i64 {
     input
         .lines()
-        .map(|line| iterate(line.parse::<i64>().unwrap(), 2000))
+        .map(|line| {
+            let mut number = line.parse::<i64>().unwrap_unchecked();
+
+            for _ in 0..2000 {
+                number = iter(number);
+            }
+
+            number
+        })
         .sum()
 }
 
@@ -44,62 +43,75 @@ fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> usize {
 }
 
 pub fn part2(input: &str) -> i64 {
+    unsafe { inner2(input) }
+}
+
+unsafe fn inner2(input: &str) -> i64 {
     let mut results_map: [i64; 130321] = [0; 130321];
-    let mut already_done: [bool; 130321] = [false; 130321];
-    let mut diff_seq: [i64; 4] = [0, 0, 0, 0];
-
-    macro_rules! remember_seq {
-        ($diff_seq:expr, $new_price:expr) => {
-            let hash = seq_hash($diff_seq[0], $diff_seq[1], $diff_seq[2], $diff_seq[3]);
-
-            if !already_done[hash] {
-                already_done[hash] = true;
-                results_map[hash] += $new_price;
-            }
-        };
-    }
 
     macro_rules! iter2 {
-        ($number:expr, $prev:expr, |$new_price:ident| $block:block) => {
-            iter!($number);
-            let $new_price = $number % 10;
-            $block
+        ($number:expr, $prev:expr, $new_price:expr, $diff:expr) => {
+            $number = iter($number);
+            $new_price = $number % 10;
+            $diff = $new_price - $prev;
             $prev = $new_price;
         };
     }
 
     for line in input.lines() {
-        let mut number = line.parse::<i64>().unwrap();
+        let mut already_done: [bool; 130321] = [false; 130321];
+        let mut number = line.parse::<i64>().unwrap_unchecked();
         let mut prev = number % 10;
 
-        iter2!(number, prev, |new_price| {
-            diff_seq[0] = new_price - prev;
-        });
-        iter2!(number, prev, |new_price| {
-            diff_seq[1] = new_price - prev;
-        });
-        iter2!(number, prev, |new_price| {
-            diff_seq[2] = new_price - prev;
-        });
-        iter2!(number, prev, |new_price| {
-            diff_seq[3] = new_price - prev;
-            remember_seq!(diff_seq, new_price);
-        });
+        #[allow(unused_assignments)]
+        let mut new_price = 0;
+        #[allow(unused_assignments)]
+        let mut diff = 0;
+        #[allow(unused_assignments)]
+        let mut a = 0;
+        #[allow(unused_assignments)]
+        let mut b = 0;
+        #[allow(unused_assignments)]
+        let mut c = 0;
+        #[allow(unused_assignments)]
+        let mut d = 0;
 
-        for _ in 4..2000 {
-            iter2!(number, prev, |new_price| {
-                diff_seq[0] = diff_seq[1];
-                diff_seq[1] = diff_seq[2];
-                diff_seq[2] = diff_seq[3];
-                diff_seq[3] = new_price - prev;
-                remember_seq!(diff_seq, new_price);
-            });
+        macro_rules! remember_seq {
+            ($a:expr, $b:expr, $c:expr, $d:expr, $new_price:expr) => {
+                let hash = seq_hash($a, $b, $c, $d);
+
+                if !already_done[hash] {
+                    already_done[hash] = true;
+                    results_map[hash] += $new_price;
+                }
+            };
         }
 
-        already_done.fill(false);
+        iter2!(number, prev, new_price, diff);
+        a = diff;
+
+        iter2!(number, prev, new_price, diff);
+        b = diff;
+
+        iter2!(number, prev, new_price, diff);
+        c = diff;
+
+        iter2!(number, prev, new_price, diff);
+        d = diff;
+
+        remember_seq!(a, b, c, d, new_price);
+
+        for _ in 4..2000 {
+            iter2!(number, prev, new_price, diff);
+            a = b;
+            b = c;
+            c = d;
+            d = diff;
+            remember_seq!(a, b, c, d, new_price);
+        }
     }
 
-    *results_map.iter().max().unwrap()
+    *results_map.iter().max().unwrap_unchecked()
 }
 
 #[cfg(test)]
