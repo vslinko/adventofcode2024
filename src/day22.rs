@@ -21,6 +21,24 @@ fn iter(number: i64) -> i64 {
     prune(mix(number, number * 2048))
 }
 
+macro_rules! read_unsigned {
+    ($input:expr, $i:expr) => {{
+        let mut num = 0;
+        loop {
+            match $input.get_unchecked($i) {
+                b'0'..=b'9' => {
+                    num = num * 10 + ($input.get_unchecked($i) - b'0') as i64;
+                    $i += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        num
+    }};
+}
+
 unsafe fn parse(input: &str) -> i64 {
     input.parse::<i64>().unwrap_unchecked()
 }
@@ -35,8 +53,8 @@ pub fn part1(input: &str) -> i64 {
 )]
 #[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner1(input: &str) -> i64 {
-    let mut initial_numbers = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
-    initial_numbers.extend(vec![0; (64 - initial_numbers.len() % 64) % 64]);
+    let input = input.as_bytes();
+    let mut i = 0;
 
     let _15 = i64x64::splat(15);
     let _32 = i64x64::splat(32);
@@ -49,10 +67,19 @@ unsafe fn inner1(input: &str) -> i64 {
     let _100000000 = i64x64::splat(100000000);
 
     let mut result = 0;
-    let mut i = 0;
+    let mut nums = [0; 64];
 
-    while i < initial_numbers.len() {
-        let mut nums = i64x64::from_slice(&initial_numbers[i..i + 64]);
+    while i < input.len() {
+        for j in 0..64 {
+            if i < input.len() {
+                *nums.get_unchecked_mut(j) = read_unsigned!(input, i);
+                i += 1;
+            } else {
+                *nums.get_unchecked_mut(j) = 0;
+            }
+        }
+
+        let mut nums = i64x64::from_slice(&nums);
 
         macro_rules! mix {
             ($expr:expr) => {{
@@ -81,7 +108,6 @@ unsafe fn inner1(input: &str) -> i64 {
         }
 
         result += nums.reduce_sum();
-        i += 64;
     }
 
     result
@@ -152,12 +178,7 @@ unsafe fn inner2(input: &str) -> i64 {
 
         for _ in 4..2000 {
             next!();
-
-            a = b;
-            b = c;
-            c = d;
-            d = diff;
-
+            (a, b, c, d) = (b, c, d, diff);
             remember_seq!();
         }
     }
