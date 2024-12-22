@@ -1,5 +1,3 @@
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
-
 fn mix(a: i64, b: i64) -> i64 {
     if a == 42 && b == 15 {
         return 37;
@@ -41,29 +39,22 @@ pub fn part1(input: &str) -> i64 {
         .sum()
 }
 
-fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> i64 {
-    a + b * 100 + c * 10000 + d * 1000000
+fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> usize {
+    ((a + 9) + (b + 9) * 19 + (c + 9) * 361 + (d + 9) * 6859) as usize
 }
 
 pub fn part2(input: &str) -> i64 {
-    let mut results_map: FxHashMap<i64, i64> =
-        FxHashMap::with_capacity_and_hasher(50000, FxBuildHasher::default());
-    let mut already_done: FxHashSet<i64> =
-        FxHashSet::with_capacity_and_hasher(2000, FxBuildHasher::default());
-
+    let mut results_map: [i64; 130321] = [0; 130321];
+    let mut already_done: [bool; 130321] = [false; 130321];
     let mut diff_seq: [i64; 4] = [0, 0, 0, 0];
 
     macro_rules! remember_seq {
         ($diff_seq:expr, $new_price:expr) => {
-            let seq = seq_hash($diff_seq[0], $diff_seq[1], $diff_seq[2], $diff_seq[3]);
+            let hash = seq_hash($diff_seq[0], $diff_seq[1], $diff_seq[2], $diff_seq[3]);
 
-            if !already_done.contains(&seq) {
-                already_done.insert(seq);
-
-                results_map
-                    .entry(seq)
-                    .and_modify(|e| *e += $new_price)
-                    .or_insert($new_price);
+            if !already_done[hash] {
+                already_done[hash] = true;
+                results_map[hash] += $new_price;
             }
         };
     }
@@ -105,10 +96,10 @@ pub fn part2(input: &str) -> i64 {
             });
         }
 
-        already_done.clear();
+        already_done.fill(false);
     }
 
-    *results_map.values().max().unwrap()
+    *results_map.iter().max().unwrap()
 }
 
 #[cfg(test)]
