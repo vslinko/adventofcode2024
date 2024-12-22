@@ -68,46 +68,41 @@ pub fn part2(input: &str) -> i64 {
         };
     }
 
+    macro_rules! iter2 {
+        ($number:expr, $prev:expr, |$new_price:ident| $block:block) => {
+            iter!($number);
+            let $new_price = $number % 10;
+            $block
+            $prev = $new_price;
+        };
+    }
+
     for line in input.lines() {
         let mut number = line.parse::<i64>().unwrap();
-        let mut new_price = number % 10;
-        let mut prev = new_price;
+        let mut prev = number % 10;
 
-        iter!(number);
-        new_price = number % 10;
-        diff_seq[0] = new_price - prev;
-        prev = new_price;
-
-        iter!(number);
-        new_price = number % 10;
-        diff_seq[1] = new_price - prev;
-        prev = new_price;
-
-        iter!(number);
-        new_price = number % 10;
-        diff_seq[2] = new_price - prev;
-        prev = new_price;
-
-        iter!(number);
-        new_price = number % 10;
-        diff_seq[3] = new_price - prev;
-        prev = new_price;
-
-        remember_seq!(diff_seq, new_price);
+        iter2!(number, prev, |new_price| {
+            diff_seq[0] = new_price - prev;
+        });
+        iter2!(number, prev, |new_price| {
+            diff_seq[1] = new_price - prev;
+        });
+        iter2!(number, prev, |new_price| {
+            diff_seq[2] = new_price - prev;
+        });
+        iter2!(number, prev, |new_price| {
+            diff_seq[3] = new_price - prev;
+            remember_seq!(diff_seq, new_price);
+        });
 
         for _ in 4..2000 {
-            iter!(number);
-
-            new_price = number % 10;
-
-            diff_seq[0] = diff_seq[1];
-            diff_seq[1] = diff_seq[2];
-            diff_seq[2] = diff_seq[3];
-            diff_seq[3] = new_price - prev;
-
-            remember_seq!(diff_seq, new_price);
-
-            prev = new_price;
+            iter2!(number, prev, |new_price| {
+                diff_seq[0] = diff_seq[1];
+                diff_seq[1] = diff_seq[2];
+                diff_seq[2] = diff_seq[3];
+                diff_seq[3] = new_price - prev;
+                remember_seq!(diff_seq, new_price);
+            });
         }
 
         already_done.clear();
