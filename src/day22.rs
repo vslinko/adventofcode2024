@@ -19,6 +19,10 @@ fn iter(number: i64) -> i64 {
     prune(mix(number, number * 2048))
 }
 
+unsafe fn parse(input: &str) -> i64 {
+    input.parse::<i64>().unwrap_unchecked()
+}
+
 pub fn part1(input: &str) -> i64 {
     unsafe { inner1(input) }
 }
@@ -26,15 +30,7 @@ pub fn part1(input: &str) -> i64 {
 unsafe fn inner1(input: &str) -> i64 {
     input
         .lines()
-        .map(|line| {
-            let mut number = line.parse::<i64>().unwrap_unchecked();
-
-            for _ in 0..2000 {
-                number = iter(number);
-            }
-
-            number
-        })
+        .map(|line| (0..2000).fold(parse(line), |number, _| iter(number)))
         .sum()
 }
 
@@ -60,7 +56,7 @@ unsafe fn inner2(input: &str) -> i64 {
 
     for line in input.lines() {
         let mut already_done: [bool; 130321] = [false; 130321];
-        let mut number = line.parse::<i64>().unwrap_unchecked();
+        let mut number = parse(line);
         let mut prev = number % 10;
 
         #[allow(unused_assignments)]
@@ -80,9 +76,9 @@ unsafe fn inner2(input: &str) -> i64 {
             ($a:expr, $b:expr, $c:expr, $d:expr, $new_price:expr) => {
                 let hash = seq_hash($a, $b, $c, $d);
 
-                if !already_done[hash] {
-                    already_done[hash] = true;
-                    results_map[hash] += $new_price;
+                if !already_done.get_unchecked(hash) {
+                    *already_done.get_unchecked_mut(hash) = true;
+                    *results_map.get_unchecked_mut(hash) += $new_price;
                 }
             };
         }
