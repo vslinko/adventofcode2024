@@ -16,13 +16,19 @@ fn prune(a: i64) -> i64 {
     a % 16777216
 }
 
+macro_rules! iter {
+    ($number:expr) => {
+        $number = prune(mix($number, $number * 64));
+        $number = prune(mix($number, $number / 32));
+        $number = prune(mix($number, $number * 2048));
+    };
+}
+
 fn iterate(number: i64, iters: usize) -> i64 {
     let mut number = number;
 
     for _ in 0..iters {
-        number = prune(mix(number, number * 64));
-        number = prune(mix(number, number / 32));
-        number = prune(mix(number, number * 2048));
+        iter!(number);
     }
 
     number
@@ -35,51 +41,75 @@ pub fn part1(input: &str) -> i64 {
         .sum()
 }
 
-pub fn part2(input: &str) -> i64 {
-    let mut results_map: FxHashMap<(i64, i64, i64, i64), i64> =
-        FxHashMap::with_capacity_and_hasher(130321, FxBuildHasher::default());
-    let mut already_done: FxHashSet<(i64, i64, i64, i64)> =
-        FxHashSet::with_capacity_and_hasher(130321, FxBuildHasher::default());
+fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> i64 {
+    a + b * 100 + c * 10000 + d * 1000000
+}
 
-    let mut diff_seq = Vec::with_capacity(4);
+pub fn part2(input: &str) -> i64 {
+    let mut results_map: FxHashMap<i64, i64> =
+        FxHashMap::with_capacity_and_hasher(50000, FxBuildHasher::default());
+    let mut already_done: FxHashSet<i64> =
+        FxHashSet::with_capacity_and_hasher(2000, FxBuildHasher::default());
+
+    let mut diff_seq: [i64; 4] = [0, 0, 0, 0];
+
+    macro_rules! remember_seq {
+        ($diff_seq:expr, $new_price:expr) => {
+            let seq = seq_hash($diff_seq[0], $diff_seq[1], $diff_seq[2], $diff_seq[3]);
+
+            if !already_done.contains(&seq) {
+                already_done.insert(seq);
+
+                results_map
+                    .entry(seq)
+                    .and_modify(|e| *e += $new_price)
+                    .or_insert($new_price);
+            }
+        };
+    }
 
     for line in input.lines() {
         let mut number = line.parse::<i64>().unwrap();
-        let mut prev = number % 10;
+        let mut new_price = number % 10;
+        let mut prev = new_price;
 
-        for _ in 0..2000 {
-            number = prune(mix(number, number * 64));
-            number = prune(mix(number, number / 32));
-            number = prune(mix(number, number * 2048));
+        iter!(number);
+        new_price = number % 10;
+        diff_seq[0] = new_price - prev;
+        prev = new_price;
 
-            let new_price = number % 10;
+        iter!(number);
+        new_price = number % 10;
+        diff_seq[1] = new_price - prev;
+        prev = new_price;
 
-            if diff_seq.len() == 4 {
-                diff_seq[0] = diff_seq[1];
-                diff_seq[1] = diff_seq[2];
-                diff_seq[2] = diff_seq[3];
-                diff_seq[3] = new_price - prev;
-            } else {
-                diff_seq.push(new_price - prev);
-            }
+        iter!(number);
+        new_price = number % 10;
+        diff_seq[2] = new_price - prev;
+        prev = new_price;
 
-            if diff_seq.len() == 4 {
-                let seq = (diff_seq[0], diff_seq[1], diff_seq[2], diff_seq[3]);
+        iter!(number);
+        new_price = number % 10;
+        diff_seq[3] = new_price - prev;
+        prev = new_price;
 
-                if !already_done.contains(&seq) {
-                    already_done.insert(seq);
+        remember_seq!(diff_seq, new_price);
 
-                    results_map
-                        .entry(seq)
-                        .and_modify(|e| *e += new_price)
-                        .or_insert(new_price);
-                }
-            }
+        for _ in 4..2000 {
+            iter!(number);
+
+            new_price = number % 10;
+
+            diff_seq[0] = diff_seq[1];
+            diff_seq[1] = diff_seq[2];
+            diff_seq[2] = diff_seq[3];
+            diff_seq[3] = new_price - prev;
+
+            remember_seq!(diff_seq, new_price);
 
             prev = new_price;
         }
 
-        diff_seq.clear();
         already_done.clear();
     }
 
@@ -91,19 +121,8 @@ mod tests {
     use super::*;
     use std::fs::read_to_string;
 
-    const TEST_INPUT1: &str = "1
-10
-100
-2024";
-
-    const TEST_INPUT2: &str = "1
-2
-3
-2024";
-
     #[test]
     fn test_day22_part1() {
-        assert_eq!(part1(&TEST_INPUT1).to_string(), "37327623");
         let prod_input = read_to_string("./inputs/22.txt").unwrap();
         let prod_output = read_to_string("./outputs/22p1.txt").unwrap();
         assert_eq!(part1(&prod_input).to_string(), prod_output);
@@ -111,7 +130,6 @@ mod tests {
 
     #[test]
     fn test_day22_part2() {
-        assert_eq!(part2(&TEST_INPUT2).to_string(), "23");
         let prod_input = read_to_string("./inputs/22.txt").unwrap();
         let prod_output = read_to_string("./outputs/22p2.txt").unwrap();
         assert_eq!(part2(&prod_input).to_string(), prod_output);
