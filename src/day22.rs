@@ -188,13 +188,18 @@ unsafe fn inner2(input: &str) -> i64 {
                 let hash: usizex64 = hash.cast();
                 let already_done_vals = isizex64::gather_or_default(&already_done, hash);
                 let unfilled = (already_done_vals & bitpos).simd_eq(_0);
-                let unfilled = unfilled.to_array();
-                for i in 0..64 {
-                    if *unfilled.get_unchecked(i) {
-                        *results_map.get_unchecked_mut(hash[i]) += new_price[i];
-                    }
-                }
                 (already_done_vals | bitpos).scatter(&mut already_done, hash);
+
+                let unfilled = unfilled.to_array();
+                let hash_arr = hash.as_array();
+                let new_price = new_price.as_array();
+
+                (0..64)
+                    .filter(|&i| *unfilled.get_unchecked(i))
+                    .for_each(|i| {
+                        *results_map.get_unchecked_mut(*hash_arr.get_unchecked(i)) +=
+                            new_price.get_unchecked(i);
+                    })
             };
         }
 
