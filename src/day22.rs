@@ -48,33 +48,36 @@ unsafe fn inner1(input: &str) -> i64 {
     let _16777216 = i64x64::splat(16777216);
     let _100000000 = i64x64::splat(100000000);
 
-    macro_rules! mix {
-        ($a:expr, $b:expr) => {{
-            let b = $b;
-            let xored = ($a ^ $b).to_array();
-            let use_xored = $a.simd_ne(_42) | b.simd_ne(_15);
-            i64x64::load_select(&xored, use_xored, _37)
-        }};
-    }
-
-    macro_rules! prune {
-        ($a:expr) => {{
-            let moduled = ($a % _16777216).to_array();
-            let use_moduled = $a.simd_ne(_100000000);
-            i64x64::load_select(&moduled, use_moduled, _16113920)
-        }};
-    }
-
     let mut result = 0;
     let mut i = 0;
 
     while i < initial_numbers.len() {
         let mut nums = i64x64::from_slice(&initial_numbers[i..i + 64]);
 
+        macro_rules! mix {
+            ($expr:expr) => {{
+                let tmp = $expr;
+                let xored = (nums ^ tmp).to_array();
+                let use_xored = nums.simd_ne(_42) | tmp.simd_ne(_15);
+                nums = i64x64::load_select(&xored, use_xored, _37)
+            }};
+        }
+
+        macro_rules! prune {
+            () => {{
+                let moduled = (nums % _16777216).to_array();
+                let use_moduled = nums.simd_ne(_100000000);
+                nums = i64x64::load_select(&moduled, use_moduled, _16113920)
+            }};
+        }
+
         for _ in 0..2000 {
-            nums = prune!(mix!(nums, nums * _64));
-            nums = prune!(mix!(nums, nums / _32));
-            nums = prune!(mix!(nums, nums * _2048));
+            mix!(nums * _64);
+            prune!();
+            mix!(nums / _32);
+            prune!();
+            mix!(nums * _2048);
+            prune!();
         }
 
         result += nums.reduce_sum();
