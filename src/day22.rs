@@ -125,13 +125,13 @@ unsafe fn inner2(input: &str) -> i64 {
     let mut nums = [0; 64];
 
     while i < input.len() {
-        for j in 0..64 {
+        (0..64).for_each(|j| {
             if i < input.len() {
                 *nums.get_unchecked_mut(j) = read_unsigned_skip!(input, i);
             } else {
                 *nums.get_unchecked_mut(j) = 0;
             }
-        }
+        });
 
         let mut nums = i64x64::from_slice(&nums);
 
