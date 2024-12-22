@@ -1,27 +1,6 @@
 use std::simd::prelude::*;
 
-fn mix(a: i64, b: i64) -> i64 {
-    match (a, b) {
-        (42, 15) => 37,
-        _ => a ^ b,
-    }
-}
-
-fn prune(a: i64) -> i64 {
-    match a {
-        100000000 => 16113920,
-        _ => a % 16777216,
-    }
-}
-
-fn iter(number: i64) -> i64 {
-    let mut number = number;
-    number = prune(mix(number, number * 64));
-    number = prune(mix(number, number / 32));
-    prune(mix(number, number * 2048))
-}
-
-macro_rules! read_unsigned {
+macro_rules! read_unsigned_skip {
     ($input:expr, $i:expr) => {{
         let mut num = 0;
         loop {
@@ -31,16 +10,13 @@ macro_rules! read_unsigned {
                     $i += 1;
                 }
                 _ => {
+                    $i += 1;
                     break;
                 }
             }
         }
         num
     }};
-}
-
-unsafe fn parse(input: &str) -> i64 {
-    input.parse::<i64>().unwrap_unchecked()
 }
 
 pub fn part1(input: &str) -> i64 {
@@ -72,8 +48,7 @@ unsafe fn inner1(input: &str) -> i64 {
     while i < input.len() {
         for j in 0..64 {
             if i < input.len() {
-                *nums.get_unchecked_mut(j) = read_unsigned!(input, i);
-                i += 1;
+                *nums.get_unchecked_mut(j) = read_unsigned_skip!(input, i);
             } else {
                 *nums.get_unchecked_mut(j) = 0;
             }
@@ -113,66 +88,115 @@ unsafe fn inner1(input: &str) -> i64 {
     result
 }
 
-fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> usize {
-    ((a + 9) + (b + 9) * 19 + (c + 9) * 361 + (d + 9) * 6859) as usize
-}
-
 pub fn part2(input: &str) -> i64 {
     unsafe { inner2(input) }
 }
 
+#[cfg_attr(
+    target_arch = "x86_64",
+    target_feature(enable = "popcnt,avx2,ssse3,bmi1,bmi2,lzcnt")
+)]
+#[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner2(input: &str) -> i64 {
+    let input = input.as_bytes();
+    let mut i = 0;
+
+    let _0 = isizex64::splat(0);
+    let _1 = isizex64::splat(1);
+    let _9 = i64x64::splat(9);
+    let _10 = i64x64::splat(10);
+    let _15 = i64x64::splat(15);
+    let _19 = i64x64::splat(19);
+    let _32 = i64x64::splat(32);
+    let _37 = i64x64::splat(37);
+    let _42 = i64x64::splat(42);
+    let _64 = i64x64::splat(64);
+    let _361 = i64x64::splat(361);
+    let _2048 = i64x64::splat(2048);
+    let _6859 = i64x64::splat(6859);
+    let _16113920 = i64x64::splat(16113920);
+    let _16777216 = i64x64::splat(16777216);
+    let _100000000 = i64x64::splat(100000000);
+    let bitpos = isizex64::from_array(std::array::from_fn(|i| 1 << i));
+
     let mut results_map: [i64; 130321] = [0; 130321];
+    let mut already_done = vec![0_isize; 130321];
 
-    for line in input.lines() {
-        let mut already_done: [bool; 130321] = [false; 130321];
-        let mut number = parse(line);
-        let mut prev = number % 10;
+    let mut nums = [0; 64];
 
-        #[allow(unused_assignments)]
-        let mut new_price = 0;
-        #[allow(unused_assignments)]
-        let mut diff = 0;
-        #[allow(unused_assignments)]
-        let mut a = 0;
-        #[allow(unused_assignments)]
-        let mut b = 0;
-        #[allow(unused_assignments)]
-        let mut c = 0;
-        #[allow(unused_assignments)]
-        let mut d = 0;
-
-        macro_rules! remember_seq {
-            () => {
-                let hash = seq_hash(a, b, c, d);
-
-                if !already_done.get_unchecked(hash) {
-                    *already_done.get_unchecked_mut(hash) = true;
-                    *results_map.get_unchecked_mut(hash) += new_price;
-                }
-            };
+    while i < input.len() {
+        for j in 0..64 {
+            if i < input.len() {
+                *nums.get_unchecked_mut(j) = read_unsigned_skip!(input, i);
+            } else {
+                *nums.get_unchecked_mut(j) = 0;
+            }
         }
+
+        let mut nums = i64x64::from_slice(&nums);
+
+        macro_rules! mix {
+            ($expr:expr) => {{
+                let tmp = $expr;
+                let xored = (nums ^ tmp).to_array();
+                let use_xored = nums.simd_ne(_42) | tmp.simd_ne(_15);
+                nums = i64x64::load_select(&xored, use_xored, _37)
+            }};
+        }
+
+        macro_rules! prune {
+            () => {{
+                let moduled = (nums % _16777216).to_array();
+                let use_moduled = nums.simd_ne(_100000000);
+                nums = i64x64::load_select(&moduled, use_moduled, _16113920)
+            }};
+        }
+
+        let mut prev = nums % _10;
+        let mut new_price;
+        let mut diff;
 
         macro_rules! next {
             () => {
-                number = iter(number);
-                new_price = number % 10;
+                mix!(nums * _64);
+                prune!();
+                mix!(nums / _32);
+                prune!();
+                mix!(nums * _2048);
+                prune!();
+                new_price = nums % _10;
                 diff = new_price - prev;
                 prev = new_price;
             };
         }
 
         next!();
-        a = diff;
+        let mut a = diff;
 
         next!();
-        b = diff;
+        let mut b = diff;
 
         next!();
-        c = diff;
+        let mut c = diff;
 
         next!();
-        d = diff;
+        let mut d = diff;
+
+        macro_rules! remember_seq {
+            () => {
+                let hash = (a + _9) + (b + _9) * _19 + (c + _9) * _361 + (d + _9) * _6859;
+                let hash: usizex64 = hash.cast();
+                let already_done_vals = isizex64::gather_or_default(&already_done, hash);
+                let unfilled = (already_done_vals & bitpos).simd_eq(_0);
+                let unfilled = unfilled.to_array();
+                for i in 0..64 {
+                    if *unfilled.get_unchecked(i) {
+                        *results_map.get_unchecked_mut(hash[i]) += new_price[i];
+                    }
+                }
+                (already_done_vals | bitpos).scatter(&mut already_done, hash);
+            };
+        }
 
         remember_seq!();
 
@@ -181,6 +205,8 @@ unsafe fn inner2(input: &str) -> i64 {
             (a, b, c, d) = (b, c, d, diff);
             remember_seq!();
         }
+
+        already_done.fill(0);
     }
 
     *results_map.iter().max().unwrap_unchecked()
