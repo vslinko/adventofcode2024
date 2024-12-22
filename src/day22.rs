@@ -36,9 +36,7 @@ pub fn part1(input: &str) -> i64 {
 #[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner1(input: &str) -> i64 {
     let mut initial_numbers = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
-    while initial_numbers.len() % 64 != 0 {
-        initial_numbers.push(0);
-    }
+    initial_numbers.extend(vec![0; (64 - initial_numbers.len() % 64) % 64]);
 
     let _15 = i64x64::splat(15);
     let _32 = i64x64::splat(32);
