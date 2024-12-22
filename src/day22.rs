@@ -1,3 +1,5 @@
+use std::simd::prelude::*;
+
 fn mix(a: i64, b: i64) -> i64 {
     match (a, b) {
         (42, 15) => 37,
@@ -27,11 +29,61 @@ pub fn part1(input: &str) -> i64 {
     unsafe { inner1(input) }
 }
 
+#[cfg_attr(
+    target_arch = "x86_64",
+    target_feature(enable = "popcnt,avx2,ssse3,bmi1,bmi2,lzcnt")
+)]
+#[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner1(input: &str) -> i64 {
-    input
-        .lines()
-        .map(|line| (0..2000).fold(parse(line), |number, _| iter(number)))
-        .sum()
+    let mut initial_numbers = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
+    while initial_numbers.len() % 64 != 0 {
+        initial_numbers.push(0);
+    }
+
+    let _15 = i64x64::splat(15);
+    let _32 = i64x64::splat(32);
+    let _37 = i64x64::splat(37);
+    let _42 = i64x64::splat(42);
+    let _64 = i64x64::splat(64);
+    let _2048 = i64x64::splat(2048);
+    let _16113920 = i64x64::splat(16113920);
+    let _16777216 = i64x64::splat(16777216);
+    let _100000000 = i64x64::splat(100000000);
+
+    macro_rules! mix {
+        ($a:expr, $b:expr) => {{
+            let b = $b;
+            let xored = ($a ^ $b).to_array();
+            let use_xored = $a.simd_ne(_42) | b.simd_ne(_15);
+            i64x64::load_select(&xored, use_xored, _37)
+        }};
+    }
+
+    macro_rules! prune {
+        ($a:expr) => {{
+            let moduled = ($a % _16777216).to_array();
+            let use_moduled = $a.simd_ne(_100000000);
+            i64x64::load_select(&moduled, use_moduled, _16113920)
+        }};
+    }
+
+    let mut result = 0;
+    let mut i = 0;
+
+    while i < initial_numbers.len() {
+        let mut nums = i64x64::from_slice(&initial_numbers[i..i + 64]);
+
+        for _ in 0..2000 {
+            nums = prune!(mix!(nums, nums * _64));
+            nums = prune!(mix!(nums, nums / _32));
+            nums = prune!(mix!(nums, nums * _2048));
+        }
+
+        result += nums.reduce_sum();
+        i += 64;
+    }
+
+    result
 }
 
 fn seq_hash(a: i64, b: i64, c: i64, d: i64) -> usize {
