@@ -102,7 +102,6 @@ unsafe fn inner2(input: &str) -> i64 {
     let mut i = 0;
 
     let _0 = isizex64::splat(0);
-    let _1 = isizex64::splat(1);
     let _9 = i64x64::splat(9);
     let _10 = i64x64::splat(10);
     let _15 = i64x64::splat(15);
@@ -119,7 +118,7 @@ unsafe fn inner2(input: &str) -> i64 {
     let _100000000 = i64x64::splat(100000000);
     let bitpos = isizex64::from_array(std::array::from_fn(|i| 1 << i));
 
-    let mut results_map: [i64; 130321] = [0; 130321];
+    let mut results_map = vec![0; 130321];
     let mut already_done = vec![0_isize; 130321];
 
     let mut nums = [0; 64];
@@ -190,26 +189,25 @@ unsafe fn inner2(input: &str) -> i64 {
                 let unfilled = (already_done_vals & bitpos).simd_eq(_0);
                 (already_done_vals | bitpos).scatter(&mut already_done, hash);
 
-                let unfilled = unfilled.to_array();
-                let hash_arr = hash.as_array();
-                let new_price = new_price.as_array();
-
-                (0..64)
-                    .filter(|&i| *unfilled.get_unchecked(i))
-                    .for_each(|i| {
-                        *results_map.get_unchecked_mut(*hash_arr.get_unchecked(i)) +=
-                            new_price.get_unchecked(i);
+                unfilled
+                    .to_array()
+                    .iter()
+                    .zip(hash.as_array().iter())
+                    .zip(new_price.as_array().iter())
+                    .filter(|((unfilled, _), _)| **unfilled)
+                    .for_each(|((_, hash), new_price)| {
+                        *results_map.get_unchecked_mut(*hash) += new_price;
                     })
             };
         }
 
         remember_seq!();
 
-        for _ in 4..2000 {
+        (4..2000).for_each(|_| {
             next!();
             (a, b, c, d) = (b, c, d, diff);
             remember_seq!();
-        }
+        });
 
         already_done.fill(0);
     }
