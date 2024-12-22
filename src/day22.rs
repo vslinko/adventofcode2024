@@ -98,15 +98,6 @@ pub fn part2(input: &str) -> i64 {
 unsafe fn inner2(input: &str) -> i64 {
     let mut results_map: [i64; 130321] = [0; 130321];
 
-    macro_rules! iter2 {
-        ($number:expr, $prev:expr, $new_price:expr, $diff:expr) => {
-            $number = iter($number);
-            $new_price = $number % 10;
-            $diff = $new_price - $prev;
-            $prev = $new_price;
-        };
-    }
-
     for line in input.lines() {
         let mut already_done: [bool; 130321] = [false; 130321];
         let mut number = parse(line);
@@ -126,37 +117,48 @@ unsafe fn inner2(input: &str) -> i64 {
         let mut d = 0;
 
         macro_rules! remember_seq {
-            ($a:expr, $b:expr, $c:expr, $d:expr, $new_price:expr) => {
-                let hash = seq_hash($a, $b, $c, $d);
+            () => {
+                let hash = seq_hash(a, b, c, d);
 
                 if !already_done.get_unchecked(hash) {
                     *already_done.get_unchecked_mut(hash) = true;
-                    *results_map.get_unchecked_mut(hash) += $new_price;
+                    *results_map.get_unchecked_mut(hash) += new_price;
                 }
             };
         }
 
-        iter2!(number, prev, new_price, diff);
+        macro_rules! next {
+            () => {
+                number = iter(number);
+                new_price = number % 10;
+                diff = new_price - prev;
+                prev = new_price;
+            };
+        }
+
+        next!();
         a = diff;
 
-        iter2!(number, prev, new_price, diff);
+        next!();
         b = diff;
 
-        iter2!(number, prev, new_price, diff);
+        next!();
         c = diff;
 
-        iter2!(number, prev, new_price, diff);
+        next!();
         d = diff;
 
-        remember_seq!(a, b, c, d, new_price);
+        remember_seq!();
 
         for _ in 4..2000 {
-            iter2!(number, prev, new_price, diff);
+            next!();
+
             a = b;
             b = c;
             c = d;
             d = diff;
-            remember_seq!(a, b, c, d, new_price);
+
+            remember_seq!();
         }
     }
 
