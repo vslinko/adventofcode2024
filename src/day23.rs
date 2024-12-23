@@ -98,36 +98,38 @@ unsafe fn inner2(input: &str) -> String {
     let mut nodes = nodes.iter().collect::<Vec<_>>();
     nodes.sort_unstable();
 
-    String::from_utf8_unchecked(
-        nodes
-            .iter()
-            .enumerate()
-            .map(|(i, &node)| {
-                let mut bytes = Vec::with_capacity(40);
-                let mut visited = Vec::with_capacity(20);
+    let max_visited = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, &node)| {
+            let mut visited = Vec::with_capacity((nodes.len() - i) / 2);
+            visited.push(node);
 
-                bytes.push(node_first_letter(*node));
-                bytes.push(node_second_letter(*node));
-                visited.push(node);
+            nodes[i + 1..].iter().fold(visited, |mut visited, &other| {
+                let connected_to_all_other = visited
+                    .iter()
+                    .all(|&v| connections.contains(&conn_hash(*v, *other)));
 
-                for &other in nodes[i + 1..].iter() {
-                    let connected_to_all_other = visited
-                        .iter()
-                        .all(|&v| connections.contains(&conn_hash(*v, *other)));
-
-                    if connected_to_all_other {
-                        bytes.push(b',');
-                        bytes.push(node_first_letter(*other));
-                        bytes.push(node_second_letter(*other));
-                        visited.push(other);
-                    }
+                if connected_to_all_other {
+                    visited.push(other);
                 }
 
-                bytes
+                visited
             })
-            .max_by(|a, b| a.len().cmp(&b.len()))
-            .unwrap_unchecked(),
-    )
+        })
+        .max_by(|a, b| a.len().cmp(&b.len()))
+        .unwrap_unchecked();
+
+    let mut bytes = Vec::with_capacity(max_visited.len() * 3 - 1);
+    bytes.push(node_first_letter(**max_visited.get_unchecked(0)));
+    bytes.push(node_second_letter(**max_visited.get_unchecked(0)));
+
+    String::from_utf8_unchecked(max_visited[1..].iter().fold(bytes, |mut bytes, &other| {
+        bytes.push(b',');
+        bytes.push(node_first_letter(*other));
+        bytes.push(node_second_letter(*other));
+        bytes
+    }))
 }
 
 #[cfg(test)]
