@@ -64,19 +64,19 @@ unsafe fn inner1(input: &str) -> usize {
         i += 6;
     }
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(2090);
 
-    for node in t_nodes {
+    t_nodes.iter().for_each(|&node| {
         let mut cliques = Vec::new();
         let mut r = FxHashSet::with_hasher(FxBuildHasher::default());
         r.insert(node);
-        let mut p = connections[node].clone();
+        let mut p = connections.get_unchecked(node).clone();
         let mut x = FxHashSet::with_hasher(FxBuildHasher::default());
 
         bron_kerbosch(&connections, &mut cliques, &mut r, &mut p, &mut x);
 
-        for clique in cliques.iter_mut() {
-            if clique.len() == 3 {
+        cliques.iter_mut().for_each(|clique| match clique.len() {
+            3 => {
                 let clique = clique.iter().collect::<Vec<_>>();
                 result.push(hash3(
                     **clique.get_unchecked(0),
@@ -84,14 +84,15 @@ unsafe fn inner1(input: &str) -> usize {
                     **clique.get_unchecked(2),
                 ));
             }
-            if clique.len() > 3 {
+            n if n > 3 => {
                 clique.remove(&node);
                 clique.iter().tuple_combinations().for_each(|(a, b)| {
                     result.push(hash3(node, *a, *b));
                 });
             }
-        }
-    }
+            _ => {}
+        });
+    });
 
     result.sort_unstable();
     result.dedup();
@@ -105,8 +106,7 @@ pub fn part2(input: &str) -> String {
 unsafe fn inner2(input: &str) -> String {
     let input = input.as_bytes();
     let mut i = 0;
-    let mut nodes_ids: FxHashMap<usize, usize> =
-        FxHashMap::with_capacity_and_hasher(NODES, FxBuildHasher::default());
+    let mut nodes_ids = FxHashMap::with_capacity_and_hasher(NODES, FxBuildHasher::default());
     let mut ids_nodes = Vec::with_capacity(NODES);
     let mut connections =
         vec![
@@ -144,7 +144,7 @@ unsafe fn inner2(input: &str) -> String {
     let cliques = {
         let mut cliques = Vec::new();
         let mut r = FxHashSet::with_hasher(FxBuildHasher::default());
-        let mut p: FxHashSet<usize> = (0..ids_nodes.len()).collect();
+        let mut p = (0..ids_nodes.len()).collect();
         let mut x = FxHashSet::with_hasher(FxBuildHasher::default());
         bron_kerbosch(&connections, &mut cliques, &mut r, &mut p, &mut x);
         cliques
@@ -176,7 +176,7 @@ unsafe fn inner2(input: &str) -> String {
         bytes.push(get_byte!(1, max_clique.get_unchecked(0)));
         bytes.push(get_byte!(2, max_clique.get_unchecked(0)));
 
-        max_clique[1..].iter().fold(bytes, |mut bytes, &other| {
+        max_clique.iter().skip(1).fold(bytes, |mut bytes, &other| {
             bytes.push(b',');
             bytes.push(get_byte!(1, other));
             bytes.push(get_byte!(2, other));
@@ -203,21 +203,29 @@ unsafe fn bron_kerbosch(
 
     let pivot = *p
         .union(x)
-        .max_by_key(|&&v| connections[v].intersection(p).count())
+        .max_by_key(|&&v| connections.get_unchecked(v).intersection(p).count())
         .unwrap_unchecked();
 
-    for &v in p.clone().difference(&connections[pivot]) {
-        r.insert(v);
+    p.clone()
+        .difference(connections.get_unchecked(pivot))
+        .for_each(|&v| {
+            r.insert(v);
 
-        let mut new_p = p.intersection(&connections[v]).cloned().collect();
-        let mut new_x = x.intersection(&connections[v]).cloned().collect();
+            let mut new_p = p
+                .intersection(&connections.get_unchecked(v))
+                .cloned()
+                .collect();
+            let mut new_x = x
+                .intersection(&connections.get_unchecked(v))
+                .cloned()
+                .collect();
 
-        bron_kerbosch(connections, cliques, r, &mut new_p, &mut new_x);
+            bron_kerbosch(connections, cliques, r, &mut new_p, &mut new_x);
 
-        r.remove(&v);
-        p.remove(&v);
-        x.insert(v);
-    }
+            r.remove(&v);
+            p.remove(&v);
+            x.insert(v);
+        });
 }
 
 fn hash3(mut a: usize, mut b: usize, mut c: usize) -> usize {
