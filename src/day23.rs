@@ -13,8 +13,8 @@ fn node_first_letter(hash: u32) -> u8 {
     (hash / NODE_MUL) as u8
 }
 
-unsafe fn node_string(hash: u32) -> String {
-    String::from_utf8_unchecked(vec![(hash / NODE_MUL) as u8, (hash % NODE_MUL) as u8])
+fn node_second_letter(hash: u32) -> u8 {
+    (hash % NODE_MUL) as u8
 }
 
 fn conn_hash(a: u32, b: u32) -> u32 {
@@ -98,33 +98,36 @@ unsafe fn inner2(input: &str) -> String {
     let mut nodes = nodes.iter().collect::<Vec<_>>();
     nodes.sort_unstable();
 
-    let mut max_visited = FxHashSet::with_capacity_and_hasher(0, FxBuildHasher::default());
+    String::from_utf8_unchecked(
+        nodes
+            .iter()
+            .enumerate()
+            .map(|(i, &node)| {
+                let mut bytes = Vec::with_capacity(40);
+                let mut visited = Vec::with_capacity(20);
 
-    for (i, &node) in nodes.iter().enumerate() {
-        let mut visited = FxHashSet::with_capacity_and_hasher(30, FxBuildHasher::default());
-        visited.insert(node);
-        for &other in nodes[i + 1..].iter() {
-            let connected_to_all_other = visited
-                .iter()
-                .all(|&v| connections.contains(&conn_hash(*v, *other)));
+                bytes.push(node_first_letter(*node));
+                bytes.push(node_second_letter(*node));
+                visited.push(node);
 
-            if connected_to_all_other {
-                visited.insert(other);
-            }
-        }
+                for &other in nodes[i + 1..].iter() {
+                    let connected_to_all_other = visited
+                        .iter()
+                        .all(|&v| connections.contains(&conn_hash(*v, *other)));
 
-        if visited.len() > max_visited.len() {
-            max_visited = visited;
-        }
-    }
+                    if connected_to_all_other {
+                        bytes.push(b',');
+                        bytes.push(node_first_letter(*other));
+                        bytes.push(node_second_letter(*other));
+                        visited.push(other);
+                    }
+                }
 
-    let mut max_visited = max_visited
-        .iter()
-        .map(|&node| node_string(*node))
-        .collect::<Vec<_>>();
-
-    max_visited.sort_unstable();
-    max_visited.join(",")
+                bytes
+            })
+            .max_by(|a, b| a.len().cmp(&b.len()))
+            .unwrap_unchecked(),
+    )
 }
 
 #[cfg(test)]
