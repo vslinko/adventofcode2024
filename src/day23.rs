@@ -104,10 +104,6 @@ unsafe fn inner2(input: &str) -> String {
         let mut visited = FxHashSet::with_capacity_and_hasher(30, FxBuildHasher::default());
         visited.insert(node);
         for &other in nodes[i + 1..].iter() {
-            if node == other {
-                continue;
-            }
-
             let connected_to_all_other = visited
                 .iter()
                 .all(|&v| connections.contains(&conn_hash(*v, *other)));
