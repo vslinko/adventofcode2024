@@ -95,14 +95,15 @@ unsafe fn inner2(input: &str) -> String {
         i += 6;
     }
 
-    let nodes = nodes.iter().collect::<Vec<_>>();
+    let mut nodes = nodes.iter().collect::<Vec<_>>();
+    nodes.sort_unstable();
 
     let mut max_visited = FxHashSet::with_capacity_and_hasher(0, FxBuildHasher::default());
 
-    for &node in nodes.iter() {
+    for (i, &node) in nodes.iter().enumerate() {
         let mut visited = FxHashSet::with_capacity_and_hasher(30, FxBuildHasher::default());
         visited.insert(node);
-        for &other in nodes.iter() {
+        for &other in nodes[i + 1..].iter() {
             if node == other {
                 continue;
             }
