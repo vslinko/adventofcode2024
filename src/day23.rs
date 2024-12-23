@@ -184,20 +184,20 @@ unsafe fn inner2(input: &str) -> String {
         };
     }
 
-    String::from_utf8_unchecked(max_clique[1..].iter().fold(
-        {
-            let mut bytes = Vec::with_capacity(max_clique.len() * 3 - 1);
-            bytes.push(get_byte!(1, max_clique.get_unchecked(0)));
-            bytes.push(get_byte!(2, max_clique.get_unchecked(0)));
-            bytes
-        },
-        |mut bytes, &other| {
+    let bytes = {
+        let mut bytes = Vec::with_capacity(max_clique.len() * 3 - 1);
+        bytes.push(get_byte!(1, max_clique.get_unchecked(0)));
+        bytes.push(get_byte!(2, max_clique.get_unchecked(0)));
+
+        max_clique[1..].iter().fold(bytes, |mut bytes, &other| {
             bytes.push(b',');
             bytes.push(get_byte!(1, other));
             bytes.push(get_byte!(2, other));
             bytes
-        },
-    ))
+        })
+    };
+
+    String::from_utf8_unchecked(bytes)
 }
 
 #[cfg(test)]
