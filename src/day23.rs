@@ -102,7 +102,7 @@ unsafe fn inner2(input: &str) -> String {
         .iter()
         .enumerate()
         .map(|(i, &node)| {
-            let mut visited = Vec::with_capacity((nodes.len() - i) / 2);
+            let mut visited = Vec::with_capacity(13);
             visited.push(node);
 
             nodes[i + 1..].iter().fold(visited, |mut visited, &other| {
