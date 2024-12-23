@@ -64,7 +64,7 @@ unsafe fn inner1(input: &str) -> usize {
         i += 6;
     }
 
-    let mut result = FxHashSet::with_hasher(FxBuildHasher::default());
+    let mut result = Vec::new();
 
     for node in t_nodes {
         let mut cliques = Vec::new();
@@ -75,27 +75,26 @@ unsafe fn inner1(input: &str) -> usize {
 
         bron_kerbosch(&connections, &mut cliques, &mut r, &mut p, &mut x);
 
-        macro_rules! insert_set {
-            ($set:expr) => {
-                let mut clique = $set;
-                clique.sort_unstable();
-                result.insert((clique[0], clique[1], clique[2]));
-            };
-        }
-
         for clique in cliques.iter_mut() {
             if clique.len() == 3 {
-                insert_set!(clique.iter().cloned().collect::<Vec<_>>());
+                let clique = clique.iter().collect::<Vec<_>>();
+                result.push(hash3(
+                    **clique.get_unchecked(0),
+                    **clique.get_unchecked(1),
+                    **clique.get_unchecked(2),
+                ));
             }
             if clique.len() > 3 {
                 clique.remove(&node);
                 clique.iter().tuple_combinations().for_each(|(a, b)| {
-                    insert_set!(vec![*a, *b, node]);
+                    result.push(hash3(node, *a, *b));
                 });
             }
         }
     }
 
+    result.sort_unstable();
+    result.dedup();
     result.len()
 }
 
@@ -219,6 +218,20 @@ unsafe fn bron_kerbosch(
         p.remove(&v);
         x.insert(v);
     }
+}
+
+fn hash3(mut a: usize, mut b: usize, mut c: usize) -> usize {
+    if a > b {
+        (a, b) = (b, a);
+    }
+    if b > c {
+        (b, c) = (c, b);
+        if a > b {
+            (a, b) = (b, a);
+        }
+    }
+
+    a + b * NODES + c * NODES * NODES
 }
 
 #[cfg(test)]
