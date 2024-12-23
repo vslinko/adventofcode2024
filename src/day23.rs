@@ -13,10 +13,6 @@ fn node_first_letter(hash: u32) -> u8 {
     (hash / NODE_MUL) as u8
 }
 
-fn node_second_letter(hash: u32) -> u8 {
-    (hash % NODE_MUL) as u8
-}
-
 fn conn_hash(a: u32, b: u32) -> u32 {
     a * CONN_MUL + b
 }
@@ -76,159 +72,132 @@ pub fn part2(input: &str) -> String {
     unsafe { inner2(input) }
 }
 
-struct Graph {
-    adj_list: Vec<FxHashSet<usize>>,
-    vertices: usize,
-}
-
-impl Graph {
-    fn new(vertices: usize) -> Self {
-        Graph {
-            adj_list: vec![FxHashSet::with_hasher(FxBuildHasher::default()); vertices],
-            vertices,
+unsafe fn bron_kerbosch(
+    connections: &Vec<FxHashSet<usize>>,
+    cliques: &mut Vec<FxHashSet<usize>>,
+    r: &mut FxHashSet<usize>,
+    p: &mut FxHashSet<usize>,
+    x: &mut FxHashSet<usize>,
+) {
+    if p.is_empty() && x.is_empty() {
+        if !r.is_empty() {
+            cliques.push(r.clone());
         }
+        return;
     }
 
-    fn add_edge(&mut self, v1: usize, v2: usize) {
-        self.adj_list[v1].insert(v2);
-        self.adj_list[v2].insert(v1);
-    }
+    let pivot = *p
+        .union(x)
+        .max_by_key(|&&v| connections[v].intersection(p).count())
+        .unwrap_unchecked();
 
-    fn find_maximal_cliques(&self) -> Vec<FxHashSet<usize>> {
-        let mut cliques = Vec::new();
-        let mut r = FxHashSet::with_hasher(FxBuildHasher::default()); // Current clique being built
-        let mut p: FxHashSet<usize> = (0..self.vertices).collect(); // Potential vertices
-        let mut x = FxHashSet::with_hasher(FxBuildHasher::default()); // Excluded vertices
+    for &v in p.clone().difference(&connections[pivot]) {
+        r.insert(v);
 
-        self.bron_kerbosch(&mut cliques, &mut r, &mut p, &mut x);
-        cliques
-    }
+        let mut new_p = p.intersection(&connections[v]).cloned().collect();
+        let mut new_x = x.intersection(&connections[v]).cloned().collect();
 
-    fn bron_kerbosch(
-        &self,
-        cliques: &mut Vec<FxHashSet<usize>>,
-        r: &mut FxHashSet<usize>,
-        p: &mut FxHashSet<usize>,
-        x: &mut FxHashSet<usize>,
-    ) {
-        // If no more vertices to process and no excluded vertices,
-        // we found a maximal clique
-        if p.is_empty() && x.is_empty() {
-            if !r.is_empty() {
-                cliques.push(r.clone());
-            }
-            return;
-        }
+        bron_kerbosch(connections, cliques, r, &mut new_p, &mut new_x);
 
-        // Find pivot - vertex with maximum number of connections
-        let pivot = self.find_pivot(p, x);
-        let p_copy = p.clone();
-
-        // For each vertex in P that's not connected to pivot
-        for &v in p_copy.difference(&self.adj_list[pivot]) {
-            // Add vertex to current clique
-            r.insert(v);
-
-            // Create new sets for recursive call
-            let neighbors: FxHashSet<_> = self.adj_list[v].iter().cloned().collect();
-
-            // Recursive call with updated sets
-            let mut new_p: FxHashSet<_> = p.intersection(&neighbors).cloned().collect();
-            let mut new_x: FxHashSet<_> = x.intersection(&neighbors).cloned().collect();
-
-            self.bron_kerbosch(cliques, r, &mut new_p, &mut new_x);
-
-            // Move v from P to X
-            r.remove(&v);
-            p.remove(&v);
-            x.insert(v);
-        }
-    }
-
-    fn find_pivot(&self, p: &FxHashSet<usize>, x: &FxHashSet<usize>) -> usize {
-        let union: FxHashSet<_> = p.union(x).cloned().collect();
-
-        // Find vertex with maximum connections to P
-        union
-            .iter()
-            .max_by_key(|&&v| self.adj_list[v].intersection(p).count())
-            .cloned()
-            .unwrap_or(0)
+        r.remove(&v);
+        p.remove(&v);
+        x.insert(v);
     }
 }
 
 unsafe fn inner2(input: &str) -> String {
+    const NODE_MUL: usize = 256;
+    const NODES: usize = 520;
+    const NODE_CONNECTIONS: usize = 13;
+
     let input = input.as_bytes();
     let mut i = 0;
     let mut nodes_ids: FxHashMap<usize, usize> =
-        FxHashMap::with_capacity_and_hasher(30, FxBuildHasher::default());
-    let mut ids_nodes: FxHashMap<usize, usize> =
-        FxHashMap::with_capacity_and_hasher(30, FxBuildHasher::default());
-    let mut connections = vec![];
-    let mut node_id = 0;
+        FxHashMap::with_capacity_and_hasher(NODES, FxBuildHasher::default());
+    let mut ids_nodes = Vec::with_capacity(NODES);
+    let mut connections =
+        vec![
+            FxHashSet::with_capacity_and_hasher(NODE_CONNECTIONS, FxBuildHasher::default());
+            NODES
+        ];
 
-    macro_rules! parse_node_hash {
+    macro_rules! parse {
         ($input:expr, $a:expr, $b:expr) => {
-            *$input.get_unchecked($a) as usize * 256 + *$input.get_unchecked($b) as usize
+            *$input.get_unchecked($a) as usize * NODE_MUL + *$input.get_unchecked($b) as usize
         };
     }
 
-    fn node_first_letter(hash: usize) -> u8 {
-        (hash / 256) as u8
-    }
-
-    fn node_second_letter(hash: usize) -> u8 {
-        (hash % 256) as u8
+    macro_rules! create_id {
+        ($node:expr) => {
+            match nodes_ids.get(&$node) {
+                Some(&id) => id,
+                None => {
+                    let id = ids_nodes.len();
+                    nodes_ids.insert($node, id);
+                    ids_nodes.push($node);
+                    id
+                }
+            }
+        };
     }
 
     while i < input.len() {
-        let left = parse_node_hash!(input, i, i + 1);
-        let right = parse_node_hash!(input, i + 3, i + 4);
+        let left = parse!(input, i, i + 1);
+        let right = parse!(input, i + 3, i + 4);
 
-        if !nodes_ids.contains_key(&left) {
-            nodes_ids.insert(left, node_id);
-            ids_nodes.insert(node_id, left);
-            node_id += 1;
-        }
-        if !nodes_ids.contains_key(&right) {
-            nodes_ids.insert(right, node_id);
-            ids_nodes.insert(node_id, right);
-            node_id += 1;
-        }
+        let left_id = create_id!(left);
+        let right_id = create_id!(right);
 
-        connections.push((
-            *nodes_ids.get(&left).unwrap_unchecked(),
-            *nodes_ids.get(&right).unwrap_unchecked(),
-        ));
+        connections.get_unchecked_mut(left_id).insert(right_id);
+        connections.get_unchecked_mut(right_id).insert(left_id);
 
         i += 6;
     }
 
-    let mut graph = Graph::new(nodes_ids.len());
-    for (a, b) in connections {
-        graph.add_edge(a, b);
+    let cliques = {
+        let mut cliques = Vec::new();
+        let mut r = FxHashSet::with_hasher(FxBuildHasher::default());
+        let mut p: FxHashSet<usize> = (0..ids_nodes.len()).collect();
+        let mut x = FxHashSet::with_hasher(FxBuildHasher::default());
+        bron_kerbosch(&connections, &mut cliques, &mut r, &mut p, &mut x);
+        cliques
+    };
+
+    let max_clique = {
+        let mut max_clique = cliques
+            .iter()
+            .max_by_key(|c| c.len())
+            .unwrap_unchecked()
+            .iter()
+            .map(|&node_id| *ids_nodes.get_unchecked(node_id))
+            .collect::<Vec<_>>();
+        max_clique.sort_unstable();
+        max_clique
+    };
+
+    macro_rules! get_byte {
+        (1, $node:expr) => {
+            ($node / NODE_MUL) as u8
+        };
+        (2, $node:expr) => {
+            ($node % NODE_MUL) as u8
+        };
     }
 
-    let cliques = graph.find_maximal_cliques();
-    let max_clique = cliques.iter().max_by_key(|c| c.len()).unwrap_unchecked();
-
-    let mut max_clique = max_clique
-        .iter()
-        .map(|&node_id| *ids_nodes.get(&node_id).unwrap_unchecked())
-        .collect::<Vec<usize>>();
-
-    max_clique.sort_unstable();
-
-    let mut bytes = Vec::with_capacity(max_clique.len() * 3 - 1);
-    bytes.push(node_first_letter(*max_clique.get_unchecked(0)));
-    bytes.push(node_second_letter(*max_clique.get_unchecked(0)));
-
-    String::from_utf8_unchecked(max_clique[1..].iter().fold(bytes, |mut bytes, &other| {
-        bytes.push(b',');
-        bytes.push(node_first_letter(other));
-        bytes.push(node_second_letter(other));
-        bytes
-    }))
+    String::from_utf8_unchecked(max_clique[1..].iter().fold(
+        {
+            let mut bytes = Vec::with_capacity(max_clique.len() * 3 - 1);
+            bytes.push(get_byte!(1, max_clique.get_unchecked(0)));
+            bytes.push(get_byte!(2, max_clique.get_unchecked(0)));
+            bytes
+        },
+        |mut bytes, &other| {
+            bytes.push(b',');
+            bytes.push(get_byte!(1, other));
+            bytes.push(get_byte!(2, other));
+            bytes
+        },
+    ))
 }
 
 #[cfg(test)]
