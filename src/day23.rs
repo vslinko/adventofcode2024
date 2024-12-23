@@ -1,20 +1,15 @@
+use itertools::Itertools;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
-const NODE_MUL: u32 = 256;
-const CONN_MUL: u32 = 740;
+const NODE_MUL: usize = 256;
+const NODES: usize = 520;
+const T_NODES: usize = 20;
+const NODE_CONNECTIONS: usize = 13;
 
-macro_rules! parse_node_hash {
+macro_rules! parse {
     ($input:expr, $a:expr, $b:expr) => {
-        *$input.get_unchecked($a) as u32 * NODE_MUL + *$input.get_unchecked($b) as u32
+        *$input.get_unchecked($a) as usize * NODE_MUL + *$input.get_unchecked($b) as usize
     };
-}
-
-fn node_first_letter(hash: u32) -> u8 {
-    (hash / NODE_MUL) as u8
-}
-
-fn conn_hash(a: u32, b: u32) -> u32 {
-    a * CONN_MUL + b
 }
 
 pub fn part1(input: &str) -> usize {
@@ -24,92 +19,91 @@ pub fn part1(input: &str) -> usize {
 unsafe fn inner1(input: &str) -> usize {
     let input = input.as_bytes();
     let mut i = 0;
-    let mut nodes = FxHashSet::with_capacity_and_hasher(30, FxBuildHasher::default());
-    let mut connections = FxHashSet::with_capacity_and_hasher(30, FxBuildHasher::default());
+    let mut t_nodes: FxHashSet<usize> =
+        FxHashSet::with_capacity_and_hasher(T_NODES, FxBuildHasher::default());
+    let mut nodes_ids: FxHashMap<usize, usize> =
+        FxHashMap::with_capacity_and_hasher(NODES, FxBuildHasher::default());
+    let mut id_counter = 0;
+    let mut connections =
+        vec![
+            FxHashSet::with_capacity_and_hasher(NODE_CONNECTIONS, FxBuildHasher::default());
+            NODES
+        ];
+
+    macro_rules! create_id {
+        ($node:expr) => {
+            match nodes_ids.get(&$node) {
+                Some(&id) => id,
+                None => {
+                    let id = id_counter;
+                    nodes_ids.insert($node, id);
+                    id_counter += 1;
+                    id
+                }
+            }
+        };
+    }
 
     while i < input.len() {
-        let left = parse_node_hash!(input, i, i + 1);
-        let right = parse_node_hash!(input, i + 3, i + 4);
+        let left = parse!(input, i, i + 1);
+        let right = parse!(input, i + 3, i + 4);
 
-        nodes.insert(left);
-        nodes.insert(right);
+        let left_id = create_id!(left);
+        let right_id = create_id!(right);
 
-        connections.insert(conn_hash(left, right));
-        connections.insert(conn_hash(right, left));
+        if *input.get_unchecked(i) == b't' {
+            t_nodes.insert(left_id);
+        }
+        if *input.get_unchecked(i + 3) == b't' {
+            t_nodes.insert(right_id);
+        }
+
+        connections.get_unchecked_mut(left_id).insert(right_id);
+        connections.get_unchecked_mut(right_id).insert(left_id);
 
         i += 6;
     }
 
-    let nodes = nodes.iter().collect::<Vec<_>>();
+    let mut result = FxHashSet::with_hasher(FxBuildHasher::default());
 
-    nodes
-        .iter()
-        .filter(|&&&node1| node_first_letter(node1) == b't')
-        .map(|&&node1| {
-            nodes
-                .iter()
-                .filter(|&&&node2| {
-                    connections.contains(&conn_hash(node1, node2))
-                        && (node_first_letter(node2) != b't' || node2 > node1)
-                })
-                .map(|&&node2| {
-                    nodes
-                        .iter()
-                        .filter(|&&&node3| {
-                            node3 > node2
-                                && connections.contains(&conn_hash(node1, node3))
-                                && connections.contains(&conn_hash(node2, node3))
-                                && (node_first_letter(node3) != b't' || node3 > node1)
-                        })
-                        .count()
-                })
-                .sum::<usize>()
-        })
-        .sum()
+    for node in t_nodes {
+        let mut cliques = Vec::new();
+        let mut r = FxHashSet::with_hasher(FxBuildHasher::default());
+        r.insert(node);
+        let mut p = connections[node].clone();
+        let mut x = FxHashSet::with_hasher(FxBuildHasher::default());
+
+        bron_kerbosch(&connections, &mut cliques, &mut r, &mut p, &mut x);
+
+        macro_rules! insert_set {
+            ($set:expr) => {
+                let mut clique = $set;
+                clique.sort_unstable();
+                result.insert((clique[0], clique[1], clique[2]));
+            };
+        }
+
+        for clique in cliques.iter_mut() {
+            if clique.len() == 3 {
+                insert_set!(clique.iter().cloned().collect::<Vec<_>>());
+            }
+            if clique.len() > 3 {
+                clique.remove(&node);
+                clique.iter().tuple_combinations().for_each(|(a, b)| {
+                    insert_set!(vec![*a, *b, node]);
+                });
+            }
+        }
+    }
+
+    result.len()
 }
 
 pub fn part2(input: &str) -> String {
     unsafe { inner2(input) }
 }
 
-unsafe fn bron_kerbosch(
-    connections: &Vec<FxHashSet<usize>>,
-    cliques: &mut Vec<FxHashSet<usize>>,
-    r: &mut FxHashSet<usize>,
-    p: &mut FxHashSet<usize>,
-    x: &mut FxHashSet<usize>,
-) {
-    if p.is_empty() && x.is_empty() {
-        if !r.is_empty() {
-            cliques.push(r.clone());
-        }
-        return;
-    }
-
-    let pivot = *p
-        .union(x)
-        .max_by_key(|&&v| connections[v].intersection(p).count())
-        .unwrap_unchecked();
-
-    for &v in p.clone().difference(&connections[pivot]) {
-        r.insert(v);
-
-        let mut new_p = p.intersection(&connections[v]).cloned().collect();
-        let mut new_x = x.intersection(&connections[v]).cloned().collect();
-
-        bron_kerbosch(connections, cliques, r, &mut new_p, &mut new_x);
-
-        r.remove(&v);
-        p.remove(&v);
-        x.insert(v);
-    }
-}
-
 unsafe fn inner2(input: &str) -> String {
-    const NODE_MUL: usize = 256;
-    const NODES: usize = 520;
-    const NODE_CONNECTIONS: usize = 13;
-
     let input = input.as_bytes();
     let mut i = 0;
     let mut nodes_ids: FxHashMap<usize, usize> =
@@ -120,12 +114,6 @@ unsafe fn inner2(input: &str) -> String {
             FxHashSet::with_capacity_and_hasher(NODE_CONNECTIONS, FxBuildHasher::default());
             NODES
         ];
-
-    macro_rules! parse {
-        ($input:expr, $a:expr, $b:expr) => {
-            *$input.get_unchecked($a) as usize * NODE_MUL + *$input.get_unchecked($b) as usize
-        };
-    }
 
     macro_rules! create_id {
         ($node:expr) => {
@@ -198,6 +186,39 @@ unsafe fn inner2(input: &str) -> String {
     };
 
     String::from_utf8_unchecked(bytes)
+}
+
+unsafe fn bron_kerbosch(
+    connections: &Vec<FxHashSet<usize>>,
+    cliques: &mut Vec<FxHashSet<usize>>,
+    r: &mut FxHashSet<usize>,
+    p: &mut FxHashSet<usize>,
+    x: &mut FxHashSet<usize>,
+) {
+    if p.is_empty() && x.is_empty() {
+        if !r.is_empty() {
+            cliques.push(r.clone());
+        }
+        return;
+    }
+
+    let pivot = *p
+        .union(x)
+        .max_by_key(|&&v| connections[v].intersection(p).count())
+        .unwrap_unchecked();
+
+    for &v in p.clone().difference(&connections[pivot]) {
+        r.insert(v);
+
+        let mut new_p = p.intersection(&connections[v]).cloned().collect();
+        let mut new_x = x.intersection(&connections[v]).cloned().collect();
+
+        bron_kerbosch(connections, cliques, r, &mut new_p, &mut new_x);
+
+        r.remove(&v);
+        p.remove(&v);
+        x.insert(v);
+    }
 }
 
 #[cfg(test)]
