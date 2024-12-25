@@ -44,12 +44,11 @@ unsafe fn inner1(input: &str) -> usize {
 
     (0..LOCKS_COUNT).for_each(|l| {
         (0..KEYS_COUNT).for_each(|k| {
-            let lock = &locks[l * WIDTH..];
-            let key = &keys[k * WIDTH..];
-
             macro_rules! return_if_not_match {
                 ($i:expr) => {
-                    if *lock.get_unchecked($i) + *key.get_unchecked($i) > 7 {
+                    if *locks.get_unchecked(l * WIDTH + $i) + *keys.get_unchecked(k * WIDTH + $i)
+                        > HEIGHT
+                    {
                         return;
                     }
                 };
