@@ -66,17 +66,17 @@ impl ReadableValue {
 }
 
 fn key2(prefix: usize, index: usize) -> usize {
-    prefix * 65536 + ((index / 10) + 48) * 256 + ((index % 10) + 48)
+    prefix << 16 | (index / 10 + 48) << 8 | index % 10 + 48
 }
 
 fn key3(a: u8, b: u8, c: u8) -> usize {
-    a as usize * 65536 + b as usize * 256 + c as usize
+    (a as usize) << 16 | (b as usize) << 8 | c as usize
 }
 
 fn key_to_str(str: &mut String, key: usize) {
-    str.push(((key >> 16) & 0xFF) as u8 as char);
-    str.push(((key >> 8) & 0xFF) as u8 as char);
-    str.push((key & 0xFF) as u8 as char);
+    str.push((key >> 16) as u8 as char);
+    str.push((key >> 8) as u8 as char);
+    str.push(key as u8 as char);
 }
 
 pub fn part1(input: &str) -> usize {
