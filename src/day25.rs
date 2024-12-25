@@ -1,11 +1,12 @@
-use std::{ops::AddAssign, simd::prelude::*};
+use std::ops::AddAssign;
+use std::simd::prelude::*;
 
 const LOCKS_COUNT: usize = 250;
 const KEYS_COUNT: usize = 250;
 const SCHEMATICS_COUNT: usize = LOCKS_COUNT + KEYS_COUNT;
 const WIDTH: usize = 5;
 const HEIGHT: usize = 7;
-const HEIGHT_I8: i8 = 7;
+const HEIGHT_I8: i8 = HEIGHT as i8;
 const INPUT_ROW_SIZE: usize = WIDTH + 1;
 const INPUT_SCHEMA_SIZE: usize = INPUT_ROW_SIZE * HEIGHT + 1;
 
@@ -23,24 +24,11 @@ unsafe fn inner1(input: &str) -> isize {
     let limit = i8x8::splat(HEIGHT_I8);
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
-        let schema = match input.get_unchecked(INPUT_SCHEMA_SIZE * i) {
-            b'#' => {
-                let schema = &mut locks[locks_idx];
-                locks_idx += 1;
-                schema
-            }
-            _ => {
-                let schema = &mut keys[keys_idx];
-                keys_idx += 1;
-                schema
-            }
-        };
-
         macro_rules! read_row {
-            ($row:expr) => {
+            ($schema:expr, $row:expr) => {
                 let start = INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row;
 
-                schema.add_assign(
+                $schema.add_assign(
                     u8x8::load_or_default(input.get_unchecked(start..start + WIDTH))
                         .simd_ne(hash)
                         .to_int(),
@@ -48,13 +36,27 @@ unsafe fn inner1(input: &str) -> isize {
             };
         }
 
-        read_row!(0);
-        read_row!(1);
-        read_row!(2);
-        read_row!(3);
-        read_row!(4);
-        read_row!(5);
-        read_row!(6);
+        macro_rules! read_six_rows {
+            ($schema:expr, $shift:expr) => {
+                read_row!($schema, 0 + $shift);
+                read_row!($schema, 1 + $shift);
+                read_row!($schema, 2 + $shift);
+                read_row!($schema, 3 + $shift);
+                read_row!($schema, 4 + $shift);
+                read_row!($schema, 5 + $shift);
+            };
+        }
+
+        match input.get_unchecked(INPUT_SCHEMA_SIZE * i) {
+            b'#' => {
+                read_six_rows!(&mut locks[locks_idx], 1);
+                locks_idx += 1;
+            }
+            _ => {
+                read_six_rows!(&mut keys[keys_idx], 0);
+                keys_idx += 1;
+            }
+        };
     });
 
     (0..LOCKS_COUNT).fold(0, |acc, l| {
