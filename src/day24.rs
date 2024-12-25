@@ -12,22 +12,19 @@ const Y: usize = b'y' as usize;
 const Z: usize = b'z' as usize;
 const CONTEXT_SIZE: usize = GATES_COUNT + X_Y_SIZE * 2;
 
-#[derive(Clone, Eq, PartialEq)]
-enum GateOperaion {
-    And,
-    Or,
-    Xor,
-}
+const OP_AND: u8 = b'A';
+const OP_OR: u8 = b'O';
+const OP_XOR: u8 = b'X';
 
 #[derive(Clone)]
 struct Gate {
     a: usize,
-    op: GateOperaion,
+    op: u8,
     b: usize,
 }
 
 impl Gate {
-    fn new(a: usize, op: GateOperaion, b: usize) -> Self {
+    fn new(a: usize, op: u8, b: usize) -> Self {
         Gate { a, op, b }
     }
 }
@@ -80,21 +77,17 @@ unsafe fn inner1(input: &str) -> usize {
             *input.get_unchecked(i + 2),
         );
 
-        let op = match input.get_unchecked(i + 4) {
-            b'X' => {
+        let op = *input.get_unchecked(i + 4);
+
+        match op {
+            OP_AND | OP_XOR => {
                 i += 8;
-                GateOperaion::Xor
             }
-            b'A' => {
-                i += 8;
-                GateOperaion::And
-            }
-            b'O' => {
+            OP_OR => {
                 i += 7;
-                GateOperaion::Or
             }
             _ => unreachable!(),
-        };
+        }
 
         let b = key3(
             *input.get_unchecked(i),
@@ -178,9 +171,10 @@ unsafe fn inner1(input: &str) -> usize {
                 let b = *outputs.get(&gate.b).unwrap_unchecked();
 
                 let output = match gate.op {
-                    GateOperaion::And => a & b,
-                    GateOperaion::Or => a | b,
-                    GateOperaion::Xor => a ^ b,
+                    OP_AND => a & b,
+                    OP_OR => a | b,
+                    OP_XOR => a ^ b,
+                    _ => unreachable!(),
                 };
 
                 outputs.insert(wire, output);
@@ -200,7 +194,7 @@ unsafe fn swap(context: &mut FxHashMap<usize, Gate>, swaps: &mut Vec<usize>, a: 
     swaps.push(b);
 }
 
-fn gate_output(context: &FxHashMap<usize, Gate>, a: usize, op: GateOperaion, b: usize) -> usize {
+fn gate_output(context: &FxHashMap<usize, Gate>, a: usize, op: u8, b: usize) -> usize {
     context
         .iter()
         .find(|(_, gate)| {
@@ -227,21 +221,17 @@ unsafe fn inner2(input: &str) -> String {
             *input.get_unchecked(i + 2),
         );
 
-        let op = match input.get_unchecked(i + 4) {
-            b'X' => {
+        let op = *input.get_unchecked(i + 4);
+
+        match op {
+            OP_AND | OP_XOR => {
                 i += 8;
-                GateOperaion::Xor
             }
-            b'A' => {
-                i += 8;
-                GateOperaion::And
-            }
-            b'O' => {
+            OP_OR => {
                 i += 7;
-                GateOperaion::Or
             }
             _ => unreachable!(),
-        };
+        }
 
         let b = key3(
             *input.get_unchecked(i),
@@ -261,7 +251,7 @@ unsafe fn inner2(input: &str) -> String {
     });
 
     let mut swaps = Vec::with_capacity(8);
-    let mut prev_output = gate_output(&context, key2(X, 0), GateOperaion::And, key2(Y, 0));
+    let mut prev_output = gate_output(&context, key2(X, 0), OP_AND, key2(Y, 0));
 
     (1..Z_SIZE - 1).for_each(|i| {
         let x = key2(X, i);
@@ -269,7 +259,7 @@ unsafe fn inner2(input: &str) -> String {
         let z = key2(Z, i);
 
         loop {
-            let xor_gate_output = gate_output(&context, x, GateOperaion::Xor, y);
+            let xor_gate_output = gate_output(&context, x, OP_XOR, y);
             let z_gate = context.get(&z).unwrap_unchecked();
             let z_gate_input_a = z_gate.a;
             let z_gate_input_b = z_gate.b;
@@ -284,24 +274,17 @@ unsafe fn inner2(input: &str) -> String {
                 continue;
             }
 
-            let z_gate_output =
-                gate_output(&context, xor_gate_output, GateOperaion::Xor, prev_output);
+            let z_gate_output = gate_output(&context, xor_gate_output, OP_XOR, prev_output);
 
             if z_gate_output != z {
                 swap(&mut context, &mut swaps, z_gate_output, z);
                 continue;
             }
 
-            let and_gate_output1 = gate_output(&context, x, GateOperaion::And, y);
-            let and_gate_output2 =
-                gate_output(&context, xor_gate_output, GateOperaion::And, prev_output);
+            let and_gate_output1 = gate_output(&context, x, OP_AND, y);
+            let and_gate_output2 = gate_output(&context, xor_gate_output, OP_AND, prev_output);
 
-            prev_output = gate_output(
-                &context,
-                and_gate_output1,
-                GateOperaion::Or,
-                and_gate_output2,
-            );
+            prev_output = gate_output(&context, and_gate_output1, OP_OR, and_gate_output2);
 
             break;
         }
