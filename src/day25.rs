@@ -14,6 +14,11 @@ pub fn part1(input: &str) -> isize {
     unsafe { inner1(input) }
 }
 
+#[cfg_attr(
+    target_arch = "x86_64",
+    target_feature(enable = "popcnt,avx2,ssse3,bmi1,bmi2,lzcnt")
+)]
+#[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner1(input: &str) -> isize {
     let input = input.as_bytes();
     let mut locks = [i8x8::splat(HEIGHT_I8); LOCKS_COUNT];
