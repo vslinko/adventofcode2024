@@ -37,16 +37,26 @@ unsafe fn inner1(input: &str) -> isize {
             }
         };
 
-        (0..HEIGHT).for_each(|r| {
-            let row = u8x8::load_select_or_default(
-                input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * r..),
-                pattern,
-            )
-            .simd_ne(hash)
-            .to_int();
+        macro_rules! read_row {
+            ($row:expr) => {
+                schema.add_assign(
+                    u8x8::load_select_or_default(
+                        input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row..),
+                        pattern,
+                    )
+                    .simd_ne(hash)
+                    .to_int(),
+                );
+            };
+        }
 
-            schema.add_assign(row);
-        });
+        read_row!(0);
+        read_row!(1);
+        read_row!(2);
+        read_row!(3);
+        read_row!(4);
+        read_row!(5);
+        read_row!(6);
     });
 
     let mut result = 0;
