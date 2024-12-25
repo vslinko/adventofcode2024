@@ -12,16 +12,6 @@ const Y: usize = b'y' as usize;
 const Z: usize = b'z' as usize;
 const CONTEXT_SIZE: usize = GATES_COUNT + X_Y_SIZE * 2;
 
-struct InitialValue {
-    val: usize,
-}
-
-impl InitialValue {
-    fn new(val: usize) -> Self {
-        InitialValue { val }
-    }
-}
-
 #[derive(Clone, Eq, PartialEq)]
 enum GateOperaion {
     And,
@@ -39,29 +29,6 @@ struct Gate {
 impl Gate {
     fn new(a: usize, op: GateOperaion, b: usize) -> Self {
         Gate { a, op, b }
-    }
-}
-
-enum ReadableValue {
-    Initial(InitialValue),
-    Gate(Gate),
-}
-
-impl ReadableValue {
-    unsafe fn read(&self, context: &FxHashMap<usize, ReadableValue>) -> usize {
-        match self {
-            ReadableValue::Initial(val) => val.val,
-            ReadableValue::Gate(gate) => {
-                let a = context.get(&gate.a).unwrap_unchecked().read(context);
-                let b = context.get(&gate.b).unwrap_unchecked().read(context);
-
-                match gate.op {
-                    GateOperaion::And => a & b,
-                    GateOperaion::Or => a | b,
-                    GateOperaion::Xor => a ^ b,
-                }
-            }
-        }
     }
 }
 
@@ -85,19 +52,25 @@ pub fn part1(input: &str) -> usize {
 
 unsafe fn inner1(input: &str) -> usize {
     let input = input.as_bytes();
-    let mut context = FxHashMap::with_capacity_and_hasher(CONTEXT_SIZE, FxBuildHasher::default());
+
+    let mut x = [0; X_Y_SIZE];
+    let mut y = [0; X_Y_SIZE];
+    let mut wires = Vec::with_capacity(CONTEXT_SIZE);
 
     (0..X_Y_SIZE).for_each(|i| {
-        let index = i * INITIAL_VALUE_LINE_LENGTH + INPUT_X_POS;
-        let val = (*input.get_unchecked(index) - b'0') as usize;
-        context.insert(key2(X, i), ReadableValue::Initial(InitialValue::new(val)));
+        *x.get_unchecked_mut(i) =
+            (*input.get_unchecked(i * INITIAL_VALUE_LINE_LENGTH + INPUT_X_POS) - b'0') as usize;
+        wires.push(key2(X, i));
     });
 
     (0..X_Y_SIZE).for_each(|i| {
-        let index = i * INITIAL_VALUE_LINE_LENGTH + INPUT_Y_POS;
-        let val = (*input.get_unchecked(index) - b'0') as usize;
-        context.insert(key2(Y, i), ReadableValue::Initial(InitialValue::new(val)));
+        *y.get_unchecked_mut(i) =
+            (*input.get_unchecked(i * INITIAL_VALUE_LINE_LENGTH + INPUT_Y_POS) - b'0') as usize;
+        wires.push(key2(Y, i));
     });
+
+    let mut gates = FxHashMap::with_capacity_and_hasher(GATES_COUNT, FxBuildHasher::default());
+    let mut edges = FxHashMap::with_capacity_and_hasher(266, FxBuildHasher::default());
 
     let mut i = INPUT_GATES_POS;
     (0..GATES_COUNT).for_each(|_| {
@@ -137,11 +110,85 @@ unsafe fn inner1(input: &str) -> usize {
 
         i += 11;
 
-        context.insert(to, ReadableValue::Gate(Gate::new(a, op, b)));
+        wires.push(to);
+        gates.insert(to, Gate::new(a, op, b));
+        edges.entry(a).or_insert_with(Vec::new).push(to);
+        edges.entry(b).or_insert_with(Vec::new).push(to);
     });
 
+    let mut sorted_wires = Vec::with_capacity(CONTEXT_SIZE);
+    let mut in_degree = FxHashMap::with_capacity_and_hasher(GATES_COUNT, FxBuildHasher::default());
+    let mut stack = Vec::with_capacity(90);
+
+    wires.iter().for_each(|&wire| {
+        if let Some(wire_edges) = edges.get(&wire) {
+            wire_edges.iter().for_each(|&to| {
+                in_degree.entry(to).and_modify(|d| *d += 1).or_insert(1);
+            });
+        }
+    });
+
+    wires.iter().for_each(|&wire| {
+        let deg = match in_degree.get(&wire) {
+            Some(deg) => *deg,
+            None => 0,
+        };
+
+        if deg == 0 {
+            stack.push(wire);
+        }
+    });
+
+    while let Some(wire) = stack.pop() {
+        sorted_wires.push(wire);
+
+        if let Some(wire_edges) = edges.get(&wire) {
+            wire_edges.iter().for_each(|to| {
+                let wire_in_degree = in_degree.get_mut(to).unwrap_unchecked();
+                *wire_in_degree -= 1;
+                if *wire_in_degree == 0 {
+                    stack.push(*to);
+                }
+            });
+        }
+    }
+
+    let mut outputs = FxHashMap::with_capacity_and_hasher(CONTEXT_SIZE, FxBuildHasher::default());
+
+    macro_rules! get_input_value {
+        ($source:expr, $wire:expr) => {{
+            let b = ((($wire >> 8) & 0xFF) - 48) * 10;
+            let c = ($wire & 0xFF) - 48;
+            *$source.get_unchecked(b + c)
+        }};
+    }
+
+    sorted_wires
+        .iter()
+        .for_each(|&wire| match (wire >> 16) as u8 {
+            b'x' => {
+                outputs.insert(wire, get_input_value!(x, wire));
+            }
+            b'y' => {
+                outputs.insert(wire, get_input_value!(y, wire));
+            }
+            _ => {
+                let gate = gates.get(&wire).unwrap_unchecked();
+                let a = *outputs.get(&gate.a).unwrap_unchecked();
+                let b = *outputs.get(&gate.b).unwrap_unchecked();
+
+                let output = match gate.op {
+                    GateOperaion::And => a & b,
+                    GateOperaion::Or => a | b,
+                    GateOperaion::Xor => a ^ b,
+                };
+
+                outputs.insert(wire, output);
+            }
+        });
+
     (0..Z_SIZE).rev().fold(0, |acc, i| {
-        acc * 2 + context.get(&key2(Z, i)).unwrap_unchecked().read(&context)
+        acc * 2 + outputs.get(&key2(Z, i)).unwrap_unchecked()
     })
 }
 
