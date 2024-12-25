@@ -16,12 +16,11 @@ unsafe fn inner1(input: &str) -> usize {
     let mut keys = Vec::with_capacity(KEYS_COUNT);
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
-        let mut schema = [1; WIDTH];
+        let mut schema = [0; WIDTH];
 
         let is_lock = *input.get_unchecked(INPUT_SCHEMA_SIZE * i) == b'#';
 
-        let rows_iter = if is_lock { 1..HEIGHT } else { 0..HEIGHT - 1 };
-        rows_iter.for_each(|r| {
+        (0..HEIGHT).for_each(|r| {
             (0..WIDTH).for_each(|c| {
                 if *input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * r + c) == b'#' {
                     schema[c] += 1;
