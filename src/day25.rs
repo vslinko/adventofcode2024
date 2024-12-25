@@ -12,21 +12,21 @@ pub fn part1(input: &str) -> usize {
 
 unsafe fn inner1(input: &str) -> usize {
     let input = input.as_bytes();
-    let mut locks = [[0; WIDTH]; LOCKS_COUNT];
-    let mut keys = [[0; WIDTH]; KEYS_COUNT];
+    let mut locks = [0; WIDTH * LOCKS_COUNT];
+    let mut keys = [0; WIDTH * KEYS_COUNT];
     let mut locks_idx = 0;
     let mut keys_idx = 0;
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
         let schema = match input.get_unchecked(INPUT_SCHEMA_SIZE * i) {
             b'#' => {
-                let schema = &mut locks[locks_idx];
-                locks_idx += 1;
+                let schema = &mut locks[locks_idx..];
+                locks_idx += WIDTH;
                 schema
             }
             _ => {
-                let schema = &mut keys[keys_idx];
-                keys_idx += 1;
+                let schema = &mut keys[keys_idx..];
+                keys_idx += WIDTH;
                 schema
             }
         };
@@ -42,16 +42,28 @@ unsafe fn inner1(input: &str) -> usize {
 
     let mut result = 0;
 
-    for lock in locks.iter() {
-        'qwe: for key in keys.iter() {
-            for i in 0..WIDTH {
-                if lock[i] + key[i] > 7 {
-                    continue 'qwe;
-                }
+    (0..LOCKS_COUNT).for_each(|l| {
+        (0..KEYS_COUNT).for_each(|k| {
+            let lock = &locks[l * WIDTH..];
+            let key = &keys[k * WIDTH..];
+
+            macro_rules! return_if_not_match {
+                ($i:expr) => {
+                    if *lock.get_unchecked($i) + *key.get_unchecked($i) > 7 {
+                        return;
+                    }
+                };
             }
+
+            return_if_not_match!(0);
+            return_if_not_match!(1);
+            return_if_not_match!(2);
+            return_if_not_match!(3);
+            return_if_not_match!(4);
+
             result += 1;
-        }
-    }
+        });
+    });
 
     result
 }
