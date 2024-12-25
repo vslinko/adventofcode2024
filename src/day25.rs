@@ -1,42 +1,51 @@
+use std::{ops::AddAssign, simd::prelude::*};
+
 const LOCKS_COUNT: usize = 250;
 const KEYS_COUNT: usize = 250;
 const SCHEMATICS_COUNT: usize = LOCKS_COUNT + KEYS_COUNT;
 const WIDTH: usize = 5;
 const HEIGHT: usize = 7;
+const HEIGHT_I8: i8 = 7;
 const INPUT_ROW_SIZE: usize = WIDTH + 1;
 const INPUT_SCHEMA_SIZE: usize = INPUT_ROW_SIZE * HEIGHT + 1;
 
-pub fn part1(input: &str) -> usize {
+pub fn part1(input: &str) -> isize {
     unsafe { inner1(input) }
 }
 
-unsafe fn inner1(input: &str) -> usize {
+unsafe fn inner1(input: &str) -> isize {
     let input = input.as_bytes();
-    let mut locks = [0; WIDTH * LOCKS_COUNT];
-    let mut keys = [0; WIDTH * KEYS_COUNT];
+    let mut locks = [i8x8::splat(HEIGHT_I8); LOCKS_COUNT];
+    let mut keys = [i8x8::splat(HEIGHT_I8); KEYS_COUNT];
     let mut locks_idx = 0;
     let mut keys_idx = 0;
+    let pattern = mask8x8::from_array([true, true, true, true, true, false, false, false]);
+    let hash = u8x8::splat(b'#');
+    let limit = i8x8::splat(HEIGHT_I8);
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
         let schema = match input.get_unchecked(INPUT_SCHEMA_SIZE * i) {
             b'#' => {
-                let schema = &mut locks[locks_idx..];
-                locks_idx += WIDTH;
+                let schema = &mut locks[locks_idx];
+                locks_idx += 1;
                 schema
             }
             _ => {
-                let schema = &mut keys[keys_idx..];
-                keys_idx += WIDTH;
+                let schema = &mut keys[keys_idx];
+                keys_idx += 1;
                 schema
             }
         };
 
         (0..HEIGHT).for_each(|r| {
-            (0..WIDTH).for_each(|c| {
-                if *input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * r + c) == b'#' {
-                    *schema.get_unchecked_mut(c) += 1;
-                }
-            });
+            let row = u8x8::load_select_or_default(
+                input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * r..),
+                pattern,
+            )
+            .simd_ne(hash)
+            .to_int();
+
+            schema.add_assign(row);
         });
     });
 
@@ -44,21 +53,12 @@ unsafe fn inner1(input: &str) -> usize {
 
     (0..LOCKS_COUNT).for_each(|l| {
         (0..KEYS_COUNT).for_each(|k| {
-            macro_rules! return_if_not_match {
-                ($i:expr) => {
-                    if *locks.get_unchecked(l * WIDTH + $i) + *keys.get_unchecked(k * WIDTH + $i)
-                        > HEIGHT
-                    {
-                        return;
-                    }
-                };
+            if (locks.get_unchecked(l) + keys.get_unchecked(k))
+                .simd_gt(limit)
+                .any()
+            {
+                return;
             }
-
-            return_if_not_match!(0);
-            return_if_not_match!(1);
-            return_if_not_match!(2);
-            return_if_not_match!(3);
-            return_if_not_match!(4);
 
             result += 1;
         });
