@@ -21,12 +21,12 @@ pub fn part1(input: &str) -> isize {
 #[cfg_attr(avx512_available, target_feature(enable = "avx512vl"))]
 unsafe fn inner1(input: &str) -> isize {
     let input = input.as_bytes();
+    let hash = u8x8::splat(b'#');
+    let limit = i8x8::splat(HEIGHT_I8);
     let mut locks = [i8x8::splat(HEIGHT_I8); LOCKS_COUNT];
     let mut keys = [i8x8::splat(HEIGHT_I8); KEYS_COUNT];
     let mut locks_idx = 0;
     let mut keys_idx = 0;
-    let hash = u8x8::splat(b'#');
-    let limit = i8x8::splat(HEIGHT_I8);
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
         macro_rules! read_row {
