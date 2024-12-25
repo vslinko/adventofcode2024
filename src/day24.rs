@@ -10,6 +10,7 @@ const INPUT_GATES_POS: usize = (X_Y_SIZE + X_Y_SIZE) * INITIAL_VALUE_LINE_LENGTH
 const CONTEXT_SIZE: usize = GATES_COUNT + X_Y_SIZE * 2;
 const EDGES_COUNT: usize = 266;
 const STACK_SIZE: usize = 90;
+const WIRES_TO_SWAP: usize = 8;
 const X: usize = b'x' as usize;
 const Y: usize = b'y' as usize;
 const Z: usize = b'z' as usize;
@@ -251,7 +252,7 @@ unsafe fn inner2(input: &str) -> String {
         context.insert(to, Gate::new(a, op, b));
     });
 
-    let mut swaps = Vec::with_capacity(8);
+    let mut swaps = Vec::with_capacity(WIRES_TO_SWAP);
     let mut prev_output = gate_output(&context, key2(X, 0), OP_AND, key2(Y, 0));
 
     (1..Z_SIZE - 1).for_each(|i| {
