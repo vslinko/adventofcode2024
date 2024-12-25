@@ -59,22 +59,18 @@ unsafe fn inner1(input: &str) -> isize {
         read_row!(6);
     });
 
-    let mut result = 0;
-
-    (0..LOCKS_COUNT).for_each(|l| {
-        (0..KEYS_COUNT).for_each(|k| {
+    (0..LOCKS_COUNT).fold(0, |acc, l| {
+        acc + (0..KEYS_COUNT).fold(0, |acc, k| {
             if (locks.get_unchecked(l) + keys.get_unchecked(k))
                 .simd_gt(limit)
                 .any()
             {
-                return;
+                return acc;
             }
 
-            result += 1;
-        });
-    });
-
-    result
+            acc + 1
+        })
+    })
 }
 
 pub fn part2(_input: &str) -> u8 {
