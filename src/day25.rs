@@ -19,7 +19,6 @@ unsafe fn inner1(input: &str) -> isize {
     let mut keys = [i8x8::splat(HEIGHT_I8); KEYS_COUNT];
     let mut locks_idx = 0;
     let mut keys_idx = 0;
-    let pattern = mask8x8::from_array([true, true, true, true, true, false, false, false]);
     let hash = u8x8::splat(b'#');
     let limit = i8x8::splat(HEIGHT_I8);
 
@@ -40,10 +39,10 @@ unsafe fn inner1(input: &str) -> isize {
         macro_rules! read_row {
             ($row:expr) => {
                 schema.add_assign(
-                    u8x8::load_select_or_default(
-                        input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row..),
-                        pattern,
-                    )
+                    u8x8::load_or_default(input.get_unchecked(
+                        INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row
+                            ..INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row + 5,
+                    ))
                     .simd_ne(hash)
                     .to_int(),
                 );
