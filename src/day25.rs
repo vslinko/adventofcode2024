@@ -12,27 +12,32 @@ pub fn part1(input: &str) -> usize {
 
 unsafe fn inner1(input: &str) -> usize {
     let input = input.as_bytes();
-    let mut locks = Vec::with_capacity(LOCKS_COUNT);
-    let mut keys = Vec::with_capacity(KEYS_COUNT);
+    let mut locks = [[0; WIDTH]; LOCKS_COUNT];
+    let mut keys = [[0; WIDTH]; KEYS_COUNT];
+    let mut locks_idx = 0;
+    let mut keys_idx = 0;
 
     (0..SCHEMATICS_COUNT).for_each(|i| {
-        let mut schema = [0; WIDTH];
-
-        let is_lock = *input.get_unchecked(INPUT_SCHEMA_SIZE * i) == b'#';
+        let schema = match input.get_unchecked(INPUT_SCHEMA_SIZE * i) {
+            b'#' => {
+                let schema = &mut locks[locks_idx];
+                locks_idx += 1;
+                schema
+            }
+            _ => {
+                let schema = &mut keys[keys_idx];
+                keys_idx += 1;
+                schema
+            }
+        };
 
         (0..HEIGHT).for_each(|r| {
             (0..WIDTH).for_each(|c| {
                 if *input.get_unchecked(INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * r + c) == b'#' {
-                    schema[c] += 1;
+                    *schema.get_unchecked_mut(c) += 1;
                 }
             });
         });
-
-        if is_lock {
-            locks.push(schema);
-        } else {
-            keys.push(schema);
-        }
     });
 
     let mut result = 0;
