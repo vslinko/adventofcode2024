@@ -38,13 +38,12 @@ unsafe fn inner1(input: &str) -> isize {
 
         macro_rules! read_row {
             ($row:expr) => {
+                let start = INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row;
+
                 schema.add_assign(
-                    u8x8::load_or_default(input.get_unchecked(
-                        INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row
-                            ..INPUT_SCHEMA_SIZE * i + INPUT_ROW_SIZE * $row + 5,
-                    ))
-                    .simd_ne(hash)
-                    .to_int(),
+                    u8x8::load_or_default(input.get_unchecked(start..start + WIDTH))
+                        .simd_ne(hash)
+                        .to_int(),
                 );
             };
         }
