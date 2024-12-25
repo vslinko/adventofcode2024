@@ -7,11 +7,12 @@ const INITIAL_VALUE_LINE_LENGTH: usize = 7;
 const INPUT_X_POS: usize = 5;
 const INPUT_Y_POS: usize = X_Y_SIZE * INITIAL_VALUE_LINE_LENGTH + INPUT_X_POS;
 const INPUT_GATES_POS: usize = (X_Y_SIZE + X_Y_SIZE) * INITIAL_VALUE_LINE_LENGTH + 1;
+const CONTEXT_SIZE: usize = GATES_COUNT + X_Y_SIZE * 2;
+const EDGES_COUNT: usize = 266;
+const STACK_SIZE: usize = 90;
 const X: usize = b'x' as usize;
 const Y: usize = b'y' as usize;
 const Z: usize = b'z' as usize;
-const CONTEXT_SIZE: usize = GATES_COUNT + X_Y_SIZE * 2;
-
 const OP_AND: u8 = b'A';
 const OP_OR: u8 = b'O';
 const OP_XOR: u8 = b'X';
@@ -67,7 +68,7 @@ unsafe fn inner1(input: &str) -> usize {
     });
 
     let mut gates = FxHashMap::with_capacity_and_hasher(GATES_COUNT, FxBuildHasher::default());
-    let mut edges = FxHashMap::with_capacity_and_hasher(266, FxBuildHasher::default());
+    let mut edges = FxHashMap::with_capacity_and_hasher(EDGES_COUNT, FxBuildHasher::default());
 
     let mut i = INPUT_GATES_POS;
     (0..GATES_COUNT).for_each(|_| {
@@ -111,7 +112,7 @@ unsafe fn inner1(input: &str) -> usize {
 
     let mut sorted_wires = Vec::with_capacity(CONTEXT_SIZE);
     let mut in_degree = FxHashMap::with_capacity_and_hasher(GATES_COUNT, FxBuildHasher::default());
-    let mut stack = Vec::with_capacity(90);
+    let mut stack = Vec::with_capacity(STACK_SIZE);
 
     wires.iter().for_each(|&wire| {
         if let Some(wire_edges) = edges.get(&wire) {
