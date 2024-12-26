@@ -129,27 +129,19 @@ fn simulate(grid: &Grid, start_position: &Position) -> SimulationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..^.....
-........#.
-#.........
-......#...";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 41);
+    fn test_day6_part1() {
+        let prod_input = read_to_string("./inputs/6.txt").unwrap();
+        let prod_output = read_to_string("./outputs/6p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 6);
+    fn test_day6_part2() {
+        let prod_input = read_to_string("./inputs/6.txt").unwrap();
+        let prod_output = read_to_string("./outputs/6p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }

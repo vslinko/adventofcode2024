@@ -47,23 +47,19 @@ fn parse(input: &str) -> (Vec<i32>, Vec<i32>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "3   4
-4   3
-2   5
-1   3
-3   9
-3   3";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 11);
+    fn test_day1_part1() {
+        let prod_input = read_to_string("./inputs/1.txt").unwrap();
+        let prod_output = read_to_string("./outputs/1p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 31);
+    fn test_day1_part2() {
+        let prod_input = read_to_string("./inputs/1.txt").unwrap();
+        let prod_output = read_to_string("./outputs/1p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }

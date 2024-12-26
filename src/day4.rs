@@ -98,27 +98,19 @@ fn is_mas(substring: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "MMMSXXMASM
-MSAMXMSMSA
-AMXSXMAAMM
-MSAMASMSMX
-XMASAMXAMM
-XXAMMXXAMA
-SMSMSASXSS
-SAXAMASAAA
-MAMMMXMMMM
-MXMXAXMASX";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 18);
+    fn test_day4_part1() {
+        let prod_input = read_to_string("./inputs/4.txt").unwrap();
+        let prod_output = read_to_string("./outputs/4p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 9);
+    fn test_day4_part2() {
+        let prod_input = read_to_string("./inputs/4.txt").unwrap();
+        let prod_output = read_to_string("./outputs/4p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }

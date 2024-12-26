@@ -75,20 +75,19 @@ pub fn part2(input: &str) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT1: &str = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";
-    const INPUT2: &str =
-        "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT1);
-        assert_eq!(result, 161);
+    fn test_day3_part1() {
+        let prod_input = read_to_string("./inputs/3.txt").unwrap();
+        let prod_output = read_to_string("./outputs/3p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT2);
-        assert_eq!(result, 48);
+    fn test_day3_part2() {
+        let prod_input = read_to_string("./inputs/3.txt").unwrap();
+        let prod_output = read_to_string("./outputs/3p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }

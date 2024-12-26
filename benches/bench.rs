@@ -2,18 +2,18 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use paste::paste;
 
 macro_rules! get_day_input {
-    ($day_file:expr) => {
-        include_str!(concat!("../inputs/", $day_file))
+    ($day_name:expr) => {
+        include_str!(concat!("../inputs/", $day_name, ".txt"))
     };
 }
 
 macro_rules! benches_day {
-    ($day_name:expr, $day_file:expr) => {
+    ($day_name:expr) => {
         paste! {
             use solution::[<day $day_name>];
 
             pub fn [<bench_day $day_name>](c: &mut Criterion) {
-                let input = get_day_input!($day_file);
+                let input = get_day_input!($day_name);
                 c.bench_function(&format!("bench_day{}_part1", $day_name), |b| b.iter(|| [<day $day_name>]::part1(black_box(input))));
                 c.bench_function(&format!("bench_day{}_part2", $day_name), |b| b.iter(|| [<day $day_name>]::part2(black_box(input))));
             }
@@ -22,10 +22,10 @@ macro_rules! benches_day {
 }
 
 macro_rules! benches {
-    ($($day_name:expr, $day_file:expr),*) => {
+    ($($day_name:expr),*) => {
         paste! {
             $(
-                benches_day!($day_name, $day_file);
+                benches_day!($day_name);
             )*
 
             criterion_group!(benches, $([<bench_day $day_name>]),*);
@@ -34,23 +34,4 @@ macro_rules! benches {
     };
 }
 
-#[rustfmt::skip]
-benches!(
-    // 9, "9.txt",
-    // 10, "10.txt",
-    // 11, "11.txt",
-    // 12, "12.txt",
-    // 13, "13.txt", "13_simd", "13.txt",
-    // 14, "14.txt",
-    // 15, "15.txt",
-    // 16, "16.txt",
-    // 17, "17.txt",
-    // 18, "18.txt",
-    // 19, "19.txt",
-    // 20, "20.txt",
-    // 21, "21.txt",
-    // 22, "22.txt",
-    // 23, "23.txt",
-    // 24, "24.txt",
-    25, "25.txt"
-);
+benches!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25);

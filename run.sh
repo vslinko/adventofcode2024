@@ -20,14 +20,16 @@ if [ ! -z "$part" ] && [ "$part" -ne 1 ] && [ "$part" -ne 2 ]; then
   exit 1
 fi
 
-suffix="_day${day}"
 msg="Running day $day"
+tests="test_day${day}_part"
+benches="bench_day${day}_part"
 if [ ! -z "$part" ]; then
-    suffix="${suffix}_part${part}"
     msg="${msg} part $part"
+    tests="test_day${day}_part${part}"
+    benches="bench${day}_part${part}"
 fi
 
 echo $msg
 
-cargo test test$suffix -- --nocapture
-cargo bench bench$suffix --config 'build.rustflags=["--cfg", "day19_series"]'
+cargo test $tests -- --nocapture
+cargo bench $benches --config 'build.rustflags=["--cfg", "day19_series"]'

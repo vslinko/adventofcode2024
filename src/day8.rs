@@ -106,29 +106,19 @@ fn parse(input: &str) -> (i32, i32, Vec<Vec<(i32, i32)>>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "............
-........0...
-.....0......
-.......0....
-....0.......
-......A.....
-............
-............
-........A...
-.........A..
-............
-............";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 14);
+    fn test_day8_part1() {
+        let prod_input = read_to_string("./inputs/8.txt").unwrap();
+        let prod_output = read_to_string("./outputs/8p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 34);
+    fn test_day8_part2() {
+        let prod_input = read_to_string("./inputs/8.txt").unwrap();
+        let prod_output = read_to_string("./outputs/8p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }

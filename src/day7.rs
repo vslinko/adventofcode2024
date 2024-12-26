@@ -116,3 +116,23 @@ pub fn part2(input: &str) -> u64 {
         })
         .sum()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::read_to_string;
+
+    #[test]
+    fn test_day7_part1() {
+        let prod_input = read_to_string("./inputs/7.txt").unwrap();
+        let prod_output = read_to_string("./outputs/7p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
+    }
+
+    #[test]
+    fn test_day7_part2() {
+        let prod_input = read_to_string("./inputs/7.txt").unwrap();
+        let prod_output = read_to_string("./outputs/7p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
+    }
+}

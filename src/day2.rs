@@ -65,23 +65,19 @@ fn is_valid_report_with_problem_dampener(report: &Vec<i32>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const INPUT: &str = "7 6 4 2 1
-1 2 7 8 9
-9 7 6 2 1
-1 3 2 4 5
-8 6 4 4 1
-1 3 6 7 9";
+    use std::fs::read_to_string;
 
     #[test]
-    fn test_part1() {
-        let result = part1(INPUT);
-        assert_eq!(result, 2);
+    fn test_day2_part1() {
+        let prod_input = read_to_string("./inputs/2.txt").unwrap();
+        let prod_output = read_to_string("./outputs/2p1.txt").unwrap();
+        assert_eq!(part1(&prod_input).to_string(), prod_output);
     }
 
     #[test]
-    fn test_part2() {
-        let result = part2(INPUT);
-        assert_eq!(result, 4);
+    fn test_day2_part2() {
+        let prod_input = read_to_string("./inputs/2.txt").unwrap();
+        let prod_output = read_to_string("./outputs/2p2.txt").unwrap();
+        assert_eq!(part2(&prod_input).to_string(), prod_output);
     }
 }
